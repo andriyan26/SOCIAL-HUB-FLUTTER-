@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/camera_provider.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
@@ -11,8 +12,13 @@ import 'package:social_hub/presentation/providers/feed_provider.dart';
 
 class CameraStudioScreen extends StatefulWidget {
   final VoidCallback? onClose;
+  final VoidCallback? onPublishSuccess;
 
-  const CameraStudioScreen({super.key, this.onClose});
+  const CameraStudioScreen({
+    super.key,
+    this.onClose,
+    this.onPublishSuccess,
+  });
 
   @override
   State<CameraStudioScreen> createState() => _CameraStudioScreenState();
@@ -20,14 +26,13 @@ class CameraStudioScreen extends StatefulWidget {
 
 class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProviderStateMixin {
   late AnimationController _pulseController;
-  late AnimationController _flashAnimationController;
   late AnimationController _flipAnimationController;
 
   int _timerCountdown = 0;
   Timer? _countdownTimer;
   bool _showFlash = false;
   bool _showFiltersDrawer = false;
-  bool _isLiveActive = false;
+  bool _isBeautyOn = false;
 
   final List<Map<String, dynamic>> _filtersList = [
     {
@@ -40,28 +45,31 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
         0, 0, 0, 1, 0,
       ],
       'color': Colors.grey,
+      'avatar': AppAssets.imgProfile,
     },
     {
       'id': 1,
       'name': 'Natural Creamy',
       'matrix': <double>[
-        1.1, 0, 0, 0, 15,
+        1.12, 0, 0, 0, 15,
         0, 1.05, 0, 0, 12,
-        0, 0, 0.95, 0, -5,
+        0, 0, 0.92, 0, -5,
         0, 0, 0, 1, 0,
       ],
       'color': const Color(0xFFFBBF24),
+      'avatar': AppAssets.imgFeed,
     },
     {
       'id': 2,
       'name': 'Cyberpunk',
       'matrix': <double>[
-        1.2, 0, 0, 0, 20,
+        1.25, 0, 0, 0, 20,
         0, 0.9, 0, 0, -10,
-        0, 0, 1.3, 0, 30,
+        0, 0, 1.35, 0, 30,
         0, 0, 0, 1, 0,
       ],
       'color': const Color(0xFF00F2FE),
+      'avatar': AppAssets.imgFriends,
     },
     {
       'id': 3,
@@ -73,6 +81,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
         0, 0, 0, 1, 0,
       ],
       'color': const Color(0xFFD97706),
+      'avatar': AppAssets.imgInbox,
     },
     {
       'id': 4,
@@ -84,17 +93,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
         0, 0, 0, 1, 0,
       ],
       'color': Colors.white,
-    },
-    {
-      'id': 5,
-      'name': 'Vivid Glow',
-      'matrix': <double>[
-        1.3, 0, 0, 0, 0,
-        0, 1.3, 0, 0, 0,
-        0, 0, 1.3, 0, 0,
-        0, 0, 0, 1, 0,
-      ],
-      'color': const Color(0xFFFE2C55),
+      'avatar': AppAssets.imgProfile,
     },
   ];
 
@@ -103,13 +102,8 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-
-    _flashAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
 
     _flipAnimationController = AnimationController(
       vsync: this,
@@ -120,68 +114,51 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
   @override
   void dispose() {
     _pulseController.dispose();
-    _flashAnimationController.dispose();
     _flipAnimationController.dispose();
     _countdownTimer?.cancel();
     super.dispose();
   }
 
   void _triggerShutterAction(CameraProvider camera) {
-    // If timer is on (3s or 10s)
-    if (_timerCountdown > 0) return; // already counting down
-
-    int seconds = (camera.durationMode == CameraDurationMode.foto) ? 0 : 0;
-    // Check if user set timer
-    if (camera.isGridOn) {
-      // timer enabled or normal
-    }
+    if (_timerCountdown > 0) return;
 
     if (camera.durationMode == CameraDurationMode.foto) {
       _executePhotoCapture(camera);
     } else {
       if (camera.isRecording) {
         camera.stopRecording();
+        AppAudioService.instance.playChimeSound();
         _showPublishDialog(context, camera, isVideo: true);
       } else {
+        AppAudioService.instance.playPopSound();
         camera.startRecording();
       }
     }
   }
 
   void _executePhotoCapture(CameraProvider camera) {
-    AppAudioService.instance.playShutterSound();
-    setState(() {
-      _showFlash = true;
-    });
-
-    _flashAnimationController.forward(from: 0.0).then((_) {
-      setState(() {
-        _showFlash = false;
-      });
-      _showPublishDialog(context, camera, isVideo: false);
+    AppAudioService.instance.playPopSound();
+    setState(() => _showFlash = true);
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        setState(() => _showFlash = false);
+        _showPublishDialog(context, camera, isVideo: false);
+      }
     });
   }
 
-  void _startTimerCountdown(int seconds, VoidCallback onFinish) {
-    setState(() {
-      _timerCountdown = seconds;
-    });
-    AppAudioService.instance.playTimerBeep(seconds);
-
+  void _startTimerCountdown(int seconds, VoidCallback onFinished) {
+    setState(() => _timerCountdown = seconds);
+    AppAudioService.instance.playPopSound();
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_timerCountdown <= 1) {
         timer.cancel();
-        setState(() {
-          _timerCountdown = 0;
-        });
-        AppAudioService.instance.playTimerBeep(0);
-        onFinish();
+        setState(() => _timerCountdown = 0);
+        onFinished();
       } else {
-        setState(() {
-          _timerCountdown--;
-        });
-        AppAudioService.instance.playTimerBeep(_timerCountdown);
+        setState(() => _timerCountdown--);
+        AppAudioService.instance.playPopSound();
       }
     });
   }
@@ -196,12 +173,11 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Live Camera Viewfinder with 3D Flip & Active Color Filter
+          // 1. Clean, High-Fidelity Camera Viewfinder (NO fake burnt-in UI buttons)
           AnimatedBuilder(
             animation: _flipAnimationController,
             builder: (context, child) {
               final angle = _flipAnimationController.value * 3.14159;
-              final isFlipped = _flipAnimationController.value >= 0.5;
               return Transform(
                 alignment: Alignment.center,
                 transform: Matrix4.identity()
@@ -212,59 +188,45 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Viewfinder base image
-                      Image.asset(
-                        AppAssets.imgCamera,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
+                      // Camera Lens Sensor Simulation Background
+                      Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0xFF0F172A),
+                              Color(0xFF050811),
+                              Color(0xFF000000),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
                       ),
 
-                      // Camera Lens Breathing Vignette
+                      // Optional Camera Feed / Lens Depth Texture
+                      Center(
+                        child: Opacity(
+                          opacity: 0.18,
+                          child: Container(
+                            width: 280,
+                            height: 280,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white24, width: 1.5),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Camera Vignette for Depth
                       Container(
                         decoration: BoxDecoration(
                           gradient: RadialGradient(
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.45),
+                              Colors.black.withOpacity(0.65),
                             ],
-                            radius: 0.85,
-                          ),
-                        ),
-                      ),
-
-                      // Optional Face Detection Reticle Simulator
-                      Center(
-                        child: Container(
-                          width: 170,
-                          height: 220,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: const Color(0xFF20D5EC).withOpacity(0.6),
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.face, color: Color(0xFF20D5EC), size: 12),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Kreator Terdeteksi',
-                                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            radius: 0.95,
                           ),
                         ),
                       ),
@@ -275,50 +237,20 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
             },
           ),
 
-          // 2. 3x3 Composition Grid Overlay
+          // 2. 3x3 Composition Grid Overlay (When Toggled)
           if (camera.isGridOn)
             CustomPaint(
               size: Size.infinite,
               painter: _GridPainter(),
             ),
 
-          // 3. Subtitles / CC Simulation Badge
-          Positioned(
-            bottom: 240,
-            left: 30,
-            right: 30,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.65),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.closed_caption, color: AppColors.cyan, size: 16),
-                  SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      'Subtitel Otomatis: Siap Merekam Suara & Gerakan 🎙️',
-                      style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w500),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // 4. White Screen Shutter Flash Animation
+          // 3. Shutter Flash Overlay
           if (_showFlash)
             Positioned.fill(
               child: Container(color: Colors.white),
             ),
 
-          // 5. Timer Countdown Overlay (3.. 2.. 1..)
+          // 4. Timer Countdown Overlay (3.. 2.. 1..)
           if (_timerCountdown > 0)
             Positioned.fill(
               child: Container(
@@ -340,200 +272,209 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
               ),
             ),
 
-          // 6. Top Bar (Close 'X', Add Sound Pill)
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Close 'X' button
-                  GestureDetector(
-                    onTap: () {
-                      if (widget.onClose != null) {
-                        widget.onClose!();
-                      } else {
-                        Navigator.maybePop(context);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.45),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 24),
-                    ),
-                  ),
-
-                  // "Tambah suara" Pill
-                  GestureDetector(
-                    onTap: () => _showSoundSelector(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.45),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white24, width: 0.8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.music_note, color: Colors.white, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            camera.selectedSound,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 38), // Balances close button
-                ],
+          // 5. Recording Progress Bar (When Recording)
+          if (camera.isRecording)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                top: true,
+                bottom: false,
+                child: LinearProgressIndicator(
+                  value: camera.recordedSeconds /
+                      (camera.durationMode == CameraDurationMode.fifteenSec ? 15.0 : 60.0),
+                  backgroundColor: Colors.white24,
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  minHeight: 4,
+                ),
               ),
             ),
-          ),
 
-          // 7. Right Tool Panel (Flip, Flash, Timer, Grid, Beauty/Filter, Captions, More)
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
+          // 6. Top Bar (Close '✕' on Left, '♫ Tambah suara' in Center)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              top: true,
+              bottom: false,
               child: Padding(
-                padding: const EdgeInsets.only(top: 12, right: 14),
-                child: Column(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Flip Camera
-                    _buildToolIcon(
-                      icon: Icons.flip_camera_ios,
-                      label: '',
+                    // Close '✕' Button
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () {
-                        AppAudioService.instance.playChimeSound();
-                        camera.toggleCameraFacing();
-                        if (_flipAnimationController.isCompleted) {
-                          _flipAnimationController.reverse();
+                        if (widget.onClose != null) {
+                          widget.onClose!();
                         } else {
-                          _flipAnimationController.forward();
+                          Navigator.maybePop(context);
                         }
                       },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        child: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                      ),
                     ),
-                    const SizedBox(height: 18),
 
-                    // Flash Toggle
-                    _buildToolIcon(
-                      icon: camera.isFlashOn ? Icons.flash_on : Icons.flash_off,
-                      label: '',
-                      color: camera.isFlashOn ? const Color(0xFFFBBF24) : Colors.white,
-                      onTap: () {
-                        camera.toggleFlash();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(camera.isFlashOn ? 'Flash Kamera: AKTIF ⚡' : 'Flash Kamera: NONAKTIF'),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Timer (3s countdown)
-                    _buildToolIcon(
-                      icon: Icons.timer,
-                      label: '',
-                      color: _timerCountdown > 0 ? AppColors.primary : Colors.white,
-                      onTap: () {
-                        _startTimerCountdown(3, () {
-                          _triggerShutterAction(camera);
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Grid Lines Toggle
-                    _buildToolIcon(
-                      icon: Icons.grid_view,
-                      label: '',
-                      color: camera.isGridOn ? AppColors.cyan : Colors.white,
-                      onTap: () {
-                        camera.toggleGrid();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(camera.isGridOn ? 'Garis Kisi 3x3: AKTIF' : 'Garis Kisi 3x3: NONAKTIF'),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Beauty / Filters Wand Drawer Toggle
-                    Stack(
-                      children: [
-                        _buildToolIcon(
-                          icon: Icons.auto_awesome,
-                          label: '',
-                          color: _showFiltersDrawer ? AppColors.primary : Colors.white,
-                          onTap: () {
-                            setState(() {
-                              _showFiltersDrawer = !_showFiltersDrawer;
-                            });
-                          },
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    // CC / Subtitles Toggle
-                    _buildToolIcon(
-                      icon: Icons.closed_caption,
-                      label: '',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Pengenalan Suara Otomatis Diaktifkan')),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Chevron dropdown
+                    // "♫ Tambah suara" Capsule
                     GestureDetector(
-                      onTap: () => _showExtraSettings(context),
-                      child: const Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 24),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _showSoundSelector(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6.5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.48),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white24, width: 0.7),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.music_note, color: Colors.white, size: 15),
+                            const SizedBox(width: 6),
+                            Text(
+                              camera.selectedSound,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
+
+                    // Invisible spacer for balance
+                    const SizedBox(width: 32),
                   ],
                 ),
               ),
             ),
           ),
 
-          // 8. Interactive Filter Selector Drawer (Sliding Bar above shutter)
+          // 7. Right Side Tool Column (7 Icons matching Gambar 1 Reference)
+          Positioned(
+            top: 54,
+            right: 14,
+            child: SafeArea(
+              top: true,
+              bottom: false,
+              child: Column(
+                children: [
+                  // 1. Flip Camera (Putar Kamera)
+                  _buildToolIcon(
+                    icon: Icons.flip_camera_ios_rounded,
+                    onTap: () {
+                      AppAudioService.instance.playChimeSound();
+                      camera.toggleCameraFacing();
+                      if (_flipAnimationController.isCompleted) {
+                        _flipAnimationController.reverse();
+                      } else {
+                        _flipAnimationController.forward();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 2. Flash / Blitz
+                  _buildToolIcon(
+                    icon: camera.isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                    color: camera.isFlashOn ? const Color(0xFFFBBF24) : Colors.white,
+                    onTap: () {
+                      camera.toggleFlash();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(camera.isFlashOn ? 'Flash Kamera: AKTIF ⚡' : 'Flash Kamera: NONAKTIF'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 3. Timer (Hitung Mundur)
+                  _buildToolIcon(
+                    icon: Icons.timer_outlined,
+                    color: _timerCountdown > 0 ? AppColors.primary : Colors.white,
+                    onTap: () {
+                      _startTimerCountdown(3, () {
+                        _triggerShutterAction(camera);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 4. Composition Grid (Garis Kisi 3x3)
+                  _buildToolIcon(
+                    icon: Icons.grid_view_rounded,
+                    color: camera.isGridOn ? AppColors.cyan : Colors.white,
+                    onTap: () {
+                      camera.toggleGrid();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(camera.isGridOn ? 'Garis Kisi 3x3: AKTIF' : 'Garis Kisi 3x3: NONAKTIF'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 5. Beautify / Percantik
+                  _buildToolIcon(
+                    icon: Icons.face_retouching_natural_rounded,
+                    color: _isBeautyOn ? const Color(0xFFFE2C55) : Colors.white,
+                    onTap: () {
+                      setState(() => _isBeautyOn = !_isBeautyOn);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_isBeautyOn ? 'Mode Cantik (Skin Smooth): AKTIF ✨' : 'Mode Cantik: NONAKTIF'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 6. Filters / Efek Warna
+                  _buildToolIcon(
+                    icon: Icons.auto_awesome_rounded,
+                    color: _showFiltersDrawer ? AppColors.primary : Colors.white,
+                    onTap: () {
+                      setState(() {
+                        _showFiltersDrawer = !_showFiltersDrawer;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 7. Expand Chevron
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _showExtraSettings(context),
+                    child: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70, size: 26),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 8. Sliding Filter Bar Drawer (When Toggled)
           if (_showFiltersDrawer)
             Positioned(
               left: 0,
               right: 0,
-              bottom: 180,
+              bottom: 175,
               child: Container(
-                height: 78,
+                height: 72,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.75),
+                  color: Colors.black.withOpacity(0.78),
                   border: const Border(
                     top: BorderSide(color: Colors.white12),
                     bottom: BorderSide(color: Colors.white12),
@@ -547,13 +488,14 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                     final f = _filtersList[idx];
                     final isSelected = camera.activeFilterIndex == idx;
                     return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () {
                         camera.setFilterIndex(idx);
                         AppAudioService.instance.playPopSound();
                       },
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: isSelected ? (f['color'] as Color).withOpacity(0.3) : Colors.white10,
                           borderRadius: BorderRadius.circular(16),
@@ -572,13 +514,13 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 7),
                             Text(
                               f['name'],
                               style: TextStyle(
                                 color: isSelected ? Colors.white : Colors.white70,
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                fontSize: 12.5,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -590,16 +532,18 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
               ),
             ),
 
-          // 9. Bottom Controls Section (Duration, Shutter, Modes)
+          // 9. Bottom Controls Section (Duration, Shutter with Filter Bubbles, and Modes)
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: SafeArea(
+              top: false,
+              bottom: true,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Duration mode selector: 10 mnt, 60 detik, 15 detik, FOTO, TEKS
+                  // A. Duration Selector Row: 10 mnt | 60 detik | 15 detik | FOTO | TEKS
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -615,15 +559,16 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   ),
                   const SizedBox(height: 16),
 
-                  // Shutter Button Row flanked by Gallery and Filter Bubbles
+                  // B. Shutter Row flanked by Gallery and Filter Bubbles (Matching Gambar 1)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Gallery Thumbnail preview (bottom left)
+                        // Gallery Upload Button (Bottom Left)
                         GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () => _showGalleryPicker(context, camera),
                           child: Container(
                             width: 44,
@@ -632,7 +577,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: Colors.white, width: 2),
                               image: const DecorationImage(
-                                image: AssetImage(AppAssets.imgFeed),
+                                image: AssetImage(AppAssets.imgAndrianPoster),
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -640,12 +585,13 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                         ),
 
                         // Filter Circle 1
-                        _buildFilterThumb(1, camera),
+                        _buildFaceFilterBubble(1, camera),
                         // Filter Circle 2
-                        _buildFilterThumb(2, camera),
+                        _buildFaceFilterBubble(2, camera),
 
-                        // Center Shutter / Record Button
+                        // Center Shutter Button (TikTok Red Button with Outer Ring)
                         GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () => _triggerShutterAction(camera),
                           child: AnimatedBuilder(
                             animation: _pulseController,
@@ -659,16 +605,22 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: Colors.white.withOpacity(0.9),
+                                      color: Colors.white.withOpacity(0.95),
                                       width: 4.5,
                                     ),
                                   ),
                                   child: Center(
                                     child: Container(
-                                      width: camera.isRecording ? 38 : (camera.durationMode == CameraDurationMode.foto ? 66 : 68),
-                                      height: camera.isRecording ? 38 : (camera.durationMode == CameraDurationMode.foto ? 66 : 68),
+                                      width: camera.isRecording
+                                          ? 38
+                                          : (camera.durationMode == CameraDurationMode.foto ? 66 : 68),
+                                      height: camera.isRecording
+                                          ? 38
+                                          : (camera.durationMode == CameraDurationMode.foto ? 66 : 68),
                                       decoration: BoxDecoration(
-                                        color: camera.durationMode == CameraDurationMode.foto ? Colors.white : AppColors.primary,
+                                        color: camera.durationMode == CameraDurationMode.foto
+                                            ? Colors.white
+                                            : AppColors.primary,
                                         shape: camera.isRecording ? BoxShape.rectangle : BoxShape.circle,
                                         borderRadius: camera.isRecording ? BorderRadius.circular(8) : null,
                                       ),
@@ -681,15 +633,15 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                         ),
 
                         // Filter Circle 3
-                        _buildFilterThumb(3, camera),
+                        _buildFaceFilterBubble(3, camera),
                         // Filter Circle 4
-                        _buildFilterThumb(4, camera),
+                        _buildFaceFilterBubble(4, camera),
                       ],
                     ),
                   ),
                   const SizedBox(height: 18),
 
-                  // Bottom Mode Tabs: KAMERA, BUAT, LIVE
+                  // C. Bottom Modes Tabs: KAMERA | BUAT | LIVE
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -700,7 +652,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                       _buildBottomTab(CameraBottomTab.live, 'LIVE', camera),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -712,15 +664,20 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
 
   Widget _buildToolIcon({
     required IconData icon,
-    required String label,
     Color color = Colors.white,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(4),
-        child: Icon(icon, color: color, size: 26),
+        child: Icon(
+          icon,
+          color: color,
+          size: 25,
+          shadows: const [Shadow(color: Colors.black87, blurRadius: 4)],
+        ),
       ),
     );
   }
@@ -728,12 +685,13 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
   Widget _buildDurationItem(CameraDurationMode mode, String title, CameraProvider camera) {
     final isSelected = camera.durationMode == mode;
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         AppAudioService.instance.playPopSound();
         camera.setDurationMode(mode);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.5),
         margin: const EdgeInsets.symmetric(horizontal: 5),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
@@ -742,39 +700,44 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
         child: Text(
           title,
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.black : Colors.white70,
+            fontSize: 12.5,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? Colors.black : Colors.white.withOpacity(0.75),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFilterThumb(int index, CameraProvider camera) {
+  Widget _buildFaceFilterBubble(int index, CameraProvider camera) {
     final isSelected = camera.activeFilterIndex == index;
     final f = _filtersList[index % _filtersList.length];
+    final avatar = f['avatar'] as String;
+
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         camera.setFilterIndex(index);
         AppAudioService.instance.playPopSound();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Filter ${f['name']} Diterapkan ✨'), duration: const Duration(milliseconds: 800)),
+        );
       },
       child: Container(
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: (f['color'] as Color).withOpacity(0.8),
           border: Border.all(
-            color: isSelected ? Colors.white : Colors.white54,
+            color: isSelected ? Colors.white : Colors.white38,
             width: isSelected ? 2.5 : 1.2,
           ),
         ),
-        child: Center(
-          child: Icon(
-            Icons.auto_awesome,
-            size: 15,
-            color: isSelected ? Colors.white : Colors.white70,
+        child: ClipOval(
+          child: Image.asset(
+            avatar,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(color: f['color'] as Color),
           ),
         ),
       ),
@@ -784,6 +747,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
   Widget _buildBottomTab(CameraBottomTab tab, String label, CameraProvider camera) {
     final isSelected = camera.bottomTab == tab;
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         camera.setBottomTab(tab);
         if (tab == CameraBottomTab.live) {
@@ -793,8 +757,8 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 14,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          fontSize: 13.5,
+          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           color: isSelected ? Colors.white : Colors.white54,
           letterSpacing: 0.8,
         ),
@@ -883,11 +847,11 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
 
   void _showGalleryPicker(BuildContext context, CameraProvider camera) {
     final galleryImages = [
+      AppAssets.imgAndrianPoster,
       AppAssets.imgFeed,
       AppAssets.imgFriends,
-      AppAssets.imgCamera,
-      AppAssets.imgInbox,
       AppAssets.imgProfile,
+      AppAssets.imgInbox,
     ];
 
     showModalBottomSheet(
@@ -900,7 +864,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Galeri Media Perangkat', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text('Pilih Foto / Video dari Galeri', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             GridView.builder(
               shrinkWrap: true,
@@ -914,6 +878,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
               itemCount: galleryImages.length,
               itemBuilder: (context, idx) {
                 return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     Navigator.pop(context);
                     _showPublishDialog(context, camera, isVideo: false, selectedThumb: galleryImages[idx]);
@@ -932,8 +897,12 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
   }
 
   void _showPublishDialog(BuildContext context, CameraProvider camera, {required bool isVideo, String? selectedThumb}) {
-    final captionController = TextEditingController(text: isVideo ? 'Vlog seru hari ini! Momen studio 🚀 #socialhub #fyp' : 'Hasil jepretan studio terbaik! ✨ #aesthetic');
-    final thumb = selectedThumb ?? (isVideo ? AppAssets.imgCamera : AppAssets.imgFeed);
+    final captionController = TextEditingController(
+      text: isVideo
+          ? 'Momen seru studio Social Hub hari ini! 🚀 #socialhub #fyp #viral'
+          : 'Hasil jepretan studio kamera terbaru! ✨ #aesthetic #photo',
+    );
+    final thumb = selectedThumb ?? (isVideo ? AppAssets.imgAndrianPoster : AppAssets.imgFeed);
 
     showModalBottomSheet(
       context: context,
@@ -954,8 +923,10 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(isVideo ? 'Publikasikan Video' : 'Publikasikan Foto',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(
+                  isVideo ? 'Publikasikan Video Baru' : 'Publikasikan Foto Baru',
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.white70),
                   onPressed: () => Navigator.pop(context),
@@ -978,8 +949,10 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                     style: const TextStyle(color: Colors.white, fontSize: 13.5),
                     decoration: InputDecoration(
                       hintText: 'Jelaskan konten Anda, tambahkan tagar...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
                       fillColor: const Color(0xFF141418),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                     ),
                   ),
                 ),
@@ -992,7 +965,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    camera.selectedSound,
+                    camera.selectedSound != 'Tambah suara' ? camera.selectedSound : '♫ Sound Asli - andrianpei',
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1011,23 +984,62 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                 ),
                 onPressed: () async {
                   final user = context.read<AuthProvider>().currentUser;
-                  final newPost = await context.read<ProfileProvider>().createNewPost(
+                  final feedProvider = context.read<FeedProvider>();
+                  final profileProvider = context.read<ProfileProvider>();
+
+                  final newPost = PostEntity(
+                    id: DateTime.now().millisecondsSinceEpoch,
                     userId: user?.id ?? 1,
                     authorName: user?.name ?? 'Andrian Pei',
                     authorUsername: user?.username ?? 'andrianpei',
                     authorAvatar: user?.avatarUrl ?? AppAssets.imgProfile,
-                    videoUrl: AppAssets.videoLogin,
-                    caption: captionController.text.trim(),
-                    musicTitle: camera.selectedSound,
+                    videoUrl: AppAssets.videoAndrian,
+                    caption: captionController.text.trim().isNotEmpty
+                        ? captionController.text.trim()
+                        : 'Konten terbaru dari Studio Social Hub! ✨ #fyp #socialhub',
+                    musicTitle: camera.selectedSound != 'Tambah suara'
+                        ? camera.selectedSound
+                        : '♫ Sound Asli - andrianpei',
+                    likesCount: 1,
+                    commentsCount: 0,
+                    sharesCount: 0,
+                    bookmarksCount: 0,
+                    isLiked: true,
+                    isBookmarked: false,
+                    viewCount: 1,
                     thumbnailPath: thumb,
+                    createdAt: 'Baru saja',
                   );
+
+                  // 1. Add post directly to FeedProvider (so it shows at the very top of Beranda)
+                  feedProvider.addPostToFeed(newPost);
+
+                  // 2. Add post directly to ProfileProvider (so it shows in profile grid)
+                  await profileProvider.createNewPost(
+                    userId: newPost.userId,
+                    authorName: newPost.authorName,
+                    authorUsername: newPost.authorUsername,
+                    authorAvatar: newPost.authorAvatar,
+                    videoUrl: newPost.videoUrl,
+                    caption: newPost.caption,
+                    musicTitle: newPost.musicTitle,
+                    thumbnailPath: newPost.thumbnailPath,
+                  );
+
                   if (context.mounted) {
-                    context.read<FeedProvider>().addPostToFeed(newPost);
                     Navigator.pop(context); // close sheet
-                    if (widget.onClose != null) widget.onClose!(); // return to feed
+                    if (widget.onPublishSuccess != null) {
+                      widget.onPublishSuccess!(); // return directly to Beranda (Feed)
+                    } else if (widget.onClose != null) {
+                      widget.onClose!();
+                    }
                     AppAudioService.instance.playChimeSound();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Konten berhasil dipublikasikan ke Beranda & Profil! 🔥')),
+                      const SnackBar(
+                        content: Text('🎉 Postingan berhasil dipublish ke Beranda dan Profil Anda!'),
+                        backgroundColor: Color(0xFF10B981),
+                        duration: Duration(seconds: 2),
+                      ),
                     );
                   }
                 },
@@ -1044,6 +1056,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     final sounds = [
       '♫ Sound Asli - Aurelie',
       '♫ Anak Kampung (Remix)',
+      '♫ Sound Wisuda Bangga (Original) - andrianpei',
       '♫ Trending TikTok Hits 2026',
       '♫ Instrumental Santai Beat',
     ];
@@ -1051,6 +1064,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(

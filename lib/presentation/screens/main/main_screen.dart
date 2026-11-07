@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/presentation/providers/inbox_provider.dart';
-import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/widgets/tiktok_nav_bar.dart';
 import 'package:social_hub/presentation/screens/feed/feed_screen.dart';
 import 'package:social_hub/presentation/screens/community/community_screen.dart';
@@ -51,12 +50,22 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  void _onPublishSuccess() {
+    setState(() {
+      _isCameraOpen = false;
+      _currentIndex = 0; // Return straight to Beranda (Feed) to see the new post!
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final unreadCount = context.watch<InboxProvider>().unreadCount;
 
     if (_isCameraOpen) {
-      return CameraStudioScreen(onClose: _closeCamera);
+      return CameraStudioScreen(
+        onClose: _closeCamera,
+        onPublishSuccess: _onPublishSuccess,
+      );
     }
 
     return Scaffold(
@@ -73,4 +82,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-
