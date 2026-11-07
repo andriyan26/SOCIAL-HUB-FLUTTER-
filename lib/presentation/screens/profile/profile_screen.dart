@@ -6,6 +6,7 @@ import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
 import 'widgets/edit_profile_sheet.dart';
+import 'widgets/post_detail_reel_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -37,12 +38,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ListTile(
               leading: const Icon(Icons.settings_outlined, color: Colors.white),
               title: const Text('Pengaturan dan Privasi', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Membuka Pengaturan & Privasi...')),
+                );
+              },
             ),
             ListTile(
-              leading: const Icon(Icons.qr_code, color: Colors.white),
+              leading: const Icon(Icons.qr_code_2, color: Colors.white),
               title: const Text('Kode QR Saya', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pop(context);
+                _showQrDialog(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.security, color: Colors.white),
+              title: const Text('Keamanan & Autentikasi', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Status Keamanan: Terproteksi PIN & Sandi')),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.primary),
@@ -58,6 +77,199 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     (route) => false,
                   );
                 }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showQrDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Center(
+          child: Text('Kode QR Profil', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.qr_code_rounded, size: 160, color: Colors.black),
+            ),
+            const SizedBox(height: 14),
+            const Text('@andrianpei', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 4),
+            const Text('Pindai untuk mengikuti saya di Social Hub', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCoinRewards(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF7B500),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text('P', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Social Hub Points', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            const Text('Saldo Koin: 2.450 Poin (Rp 245.000)', style: TextStyle(color: AppColors.cyan, fontSize: 14, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 14),
+            const Text('Gunakan poin untuk mengirim Hadiah LIVE kepada kreator favorit atau tukarkan dengan saldo dompet!',
+                textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12.5)),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF7B500), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Isi Ulang Koin', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showVisitorsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Kunjungan Profil (30 Hari Terakhir)', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            const Text('Hanya Anda yang dapat melihat riwayat pengunjung ini', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            const SizedBox(height: 16),
+            _buildVisitorTile('Aurelie Hermansyah', 'assets/images/img_8664.jpg', '2 jam lalu'),
+            _buildVisitorTile('ei.kaa🍭', 'assets/images/img_8665.jpg', 'Kemarin'),
+            _buildVisitorTile('annisasabila13', 'assets/images/img_8667.jpg', '2 hari lalu'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVisitorTile(String name, String avatar, String time) {
+    return ListTile(
+      leading: CircleAvatar(backgroundImage: AssetImage(avatar)),
+      title: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+      subtitle: Text(time, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(14)),
+        child: const Text('Ikuti Balik', style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  void _showOrdersSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Text('📦', style: TextStyle(fontSize: 20)),
+                SizedBox(width: 8),
+                Text('Pesanan & Transaksi TikTok Shop', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFF141418), borderRadius: BorderRadius.circular(10)),
+              child: const Row(
+                children: [
+                  Icon(Icons.local_shipping_outlined, color: AppColors.cyan, size: 28),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Wireless Mic Studio Creator', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5)),
+                        SizedBox(height: 3),
+                        Text('Status: Sedang Dikirim oleh Kurir J&T', style: TextStyle(color: Color(0xFF10B981), fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAccountSwitcher(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Beralih Akun', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppColors.avatarPurple,
+                child: Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              title: const Text('andrianpei', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Akun Utama (Aktif)', style: TextStyle(color: AppColors.cyan, fontSize: 12)),
+              trailing: const Icon(Icons.check_circle, color: AppColors.cyan),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add, color: Colors.white),
+              title: const Text('Tambah Akun Baru', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Membuka formulir pendaftaran akun baru...')),
+                );
               },
             ),
           ],
@@ -98,42 +310,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(width: 8),
             // Yellow 'P' coin badge
-            Container(
-              width: 22,
-              height: 22,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF7B500),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Text('P', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+            GestureDetector(
+              onTap: () => _showCoinRewards(context),
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF7B500),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('P', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
               ),
             ),
           ],
         ),
         leadingWidth: 70,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.lock, size: 16, color: Colors.white),
-            const SizedBox(width: 4),
-            Text(
-              displayName,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
-          ],
+        title: GestureDetector(
+          onTap: () => _showAccountSwitcher(context),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock, size: 16, color: Colors.white),
+              const SizedBox(width: 4),
+              Text(
+                displayName,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+            ],
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.remove_red_eye_outlined, color: Colors.white, size: 22),
-            onPressed: () {},
+            onPressed: () => _showVisitorsSheet(context),
           ),
           IconButton(
             icon: const Icon(Icons.person_add_alt_outlined, color: Colors.white, size: 22),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Membuka Tambah Teman & Pindai Kontak...')),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.menu, color: Colors.white, size: 24),
@@ -186,23 +408,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         // Action Buttons: "🛍️ Pesanan Anda" & "Edit Profil"
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E1E24),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: const Color(0xFF2C2C34)),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('🛍️', style: TextStyle(fontSize: 12)),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Pesanan Anda',
-                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.white),
-                                  ),
-                                ],
+                            GestureDetector(
+                              onTap: () => _showOrdersSheet(context),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E1E24),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(color: const Color(0xFF2C2C34)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('🛍️', style: TextStyle(fontSize: 12)),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Pesanan Anda',
+                                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.white),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -235,38 +460,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
 
                   // Right Side: Big Circular Avatar with Purple 'a' + Blue Plus Button
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      Container(
-                        width: 96,
-                        height: 96,
-                        decoration: const BoxDecoration(
-                          color: AppColors.avatarPurple,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'a',
-                            style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 2,
-                        bottom: 2,
-                        child: Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF20D5EC),
+                  GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => const EditProfileSheet(),
+                      );
+                    },
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: const BoxDecoration(
+                            color: AppColors.avatarPurple,
                             shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.background, width: 2.5),
                           ),
-                          child: const Icon(Icons.add, color: Colors.white, size: 18),
+                          child: const Center(
+                            child: Text(
+                              'a',
+                              style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Colors.white),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          right: 2,
+                          bottom: 2,
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF20D5EC),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.background, width: 2.5),
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white, size: 18),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -287,6 +522,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Divider(color: AppColors.border, height: 1),
 
             // 3-Column Video Grid (Matches IMG_8668)
+            // USER COMPLAINT FIXED: Clicking ANY post now opens full-screen interactive PostDetailReelScreen!
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -302,14 +538,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 final post = posts[index];
                 return GestureDetector(
                   onTap: () {
-                    _showPostDetail(context, post.caption, post.musicTitle);
+                    // Navigate to interactive Full-Screen Reel View
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PostDetailReelScreen(
+                          posts: posts,
+                          initialIndex: index,
+                        ),
+                      ),
+                    );
                   },
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
                       // Video thumbnail image
                       Image.asset(
-                        AppAssets.imgProfile,
+                        post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgProfile,
                         fit: BoxFit.cover,
                         alignment: _getGridAlignment(index),
                       ),
@@ -396,40 +641,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Alignment _getGridAlignment(int index) {
-    // Distribute crops nicely across the 9 grid items
     final x = (index % 3) == 0 ? -1.0 : ((index % 3) == 1 ? 0.0 : 1.0);
     final y = (index ~/ 3) == 0 ? -1.0 : ((index ~/ 3) == 1 ? 0.0 : 1.0);
     return Alignment(x, y);
   }
-
-  void _showPostDetail(BuildContext context, String caption, String music) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E24),
-        title: const Text('Detail Postingan', style: TextStyle(color: Colors.white, fontSize: 16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(AppAssets.imgProfile, height: 180, width: double.infinity, fit: BoxFit.cover),
-            ),
-            const SizedBox(height: 12),
-            Text(caption, style: const TextStyle(color: Colors.white, fontSize: 14)),
-            const SizedBox(height: 6),
-            Text(music, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup', style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
-      ),
-    );
-  }
 }
-

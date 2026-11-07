@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/utils/formatters.dart';
+import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 
@@ -43,6 +44,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
     final auth = context.read<AuthProvider>();
     final username = auth.currentUser?.username ?? 'andrianpei';
 
+    AppAudioService.instance.playPopSound();
     context.read<FeedProvider>().addComment(widget.postId, username, text);
     _commentController.clear();
   }

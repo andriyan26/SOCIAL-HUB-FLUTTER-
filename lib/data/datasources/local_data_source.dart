@@ -45,7 +45,7 @@ class LocalDataSource {
 
   // --- POSTS ---
   Future<List<PostModel>> getFeedPosts() async {
-    final results = await db.query('posts', orderBy: 'id DESC');
+    final results = await db.query('posts', orderBy: 'id ASC');
     return results.map((m) => PostModel.fromMap(m)).toList();
   }
 

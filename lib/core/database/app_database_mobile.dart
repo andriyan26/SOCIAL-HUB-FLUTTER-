@@ -157,7 +157,7 @@ class AppDatabase {
       'author_username': 'aurelie.hermansyah',
       'author_avatar': 'assets/images/img_8664.jpg',
       'video_url': 'assets/videos/konsep_sebelum_login.mp4',
-      'caption': 'Kalo ini sama kembaran aku👯',
+      'caption': 'Kalo ini sama kembaran aku👯‍♀️',
       'music_title': '♫ Berisi: Anak Kampung (T...',
       'likes_count': 844300,
       'comments_count': 3322,
@@ -170,9 +170,49 @@ class AppDatabase {
       'created_at': now,
     });
 
+    await db.insert('posts', {
+      'id': 2,
+      'user_id': 1,
+      'author_name': 'Andrian Pei',
+      'author_username': 'andrianpei',
+      'author_avatar': 'assets/images/img_8668.jpg',
+      'video_url': 'assets/videos/konsep_login.mp4',
+      'caption': 'Behind the scenes shooting konten baru bareng tim Social Hub! 🔥 Gimana menurut kalian? #creator #fyp',
+      'music_title': '♫ Sound Asli - andrianpei',
+      'likes_count': 128500,
+      'comments_count': 1480,
+      'shares_count': 4100,
+      'bookmarks_count': 9200,
+      'is_liked': 0,
+      'is_bookmarked': 0,
+      'view_count': 430000,
+      'thumbnail_path': 'assets/images/img_8668.jpg',
+      'created_at': now,
+    });
+
+    await db.insert('posts', {
+      'id': 3,
+      'user_id': 3,
+      'author_name': 'ei.kaa🍭',
+      'author_username': 'ei.kaa',
+      'author_avatar': 'assets/images/img_8665.jpg',
+      'video_url': 'assets/videos/konsep_sebelum_login.mp4',
+      'caption': 'Seru banget jalan-jalan sore bareng bestie! Jangan lupa follow dan like ya guys ✨ #friends #vlog',
+      'music_title': '♫ Beat Aesthetic Viral 2026',
+      'likes_count': 95400,
+      'comments_count': 890,
+      'shares_count': 2800,
+      'bookmarks_count': 5600,
+      'is_liked': 0,
+      'is_bookmarked': 0,
+      'view_count': 280000,
+      'thumbnail_path': 'assets/images/img_8665.jpg',
+      'created_at': now,
+    });
+
     for (int i = 1; i <= 9; i++) {
       await db.insert('posts', {
-        'id': i + 1,
+        'id': i + 3,
         'user_id': 1,
         'author_name': 'Andrian Pei',
         'author_username': 'andrianpei',
