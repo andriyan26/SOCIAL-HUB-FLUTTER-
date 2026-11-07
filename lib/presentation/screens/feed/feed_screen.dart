@@ -12,7 +12,8 @@ import 'widgets/comments_sheet.dart';
 import 'widgets/share_sheet.dart';
 
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({super.key});
+  final bool isActive;
+  const FeedScreen({super.key, this.isActive = true});
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -28,6 +29,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
   bool _isPlaying = true;
+  bool _wasPlayingBeforeLeaving = true;
 
   @override
   void initState() {
@@ -45,17 +47,48 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     _initVideoPlayer();
   }
 
+  @override
+  void didUpdateWidget(FeedScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive) {
+      _handleActiveChange(widget.isActive);
+    }
+  }
+
+  void _handleActiveChange(bool active) {
+    if (!active) {
+      _wasPlayingBeforeLeaving = _videoController?.value.isPlaying ?? false;
+      _videoController?.pause();
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    } else {
+      if (_wasPlayingBeforeLeaving) {
+        _videoController?.play();
+        if (mounted) {
+          setState(() {
+            _isPlaying = true;
+          });
+        }
+      }
+    }
+  }
+
   Future<void> _initVideoPlayer() async {
     try {
       _videoController = VideoPlayerController.asset(AppAssets.videoAndrian);
       await _videoController!.initialize();
       _videoController!.setLooping(true);
       _videoController!.setVolume(1.0);
-      await _videoController!.play();
+      if (widget.isActive) {
+        await _videoController!.play();
+      }
       if (mounted) {
         setState(() {
           _isVideoInitialized = true;
-          _isPlaying = true;
+          _isPlaying = widget.isActive;
         });
       }
     } catch (e) {
@@ -199,7 +232,12 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final feedProvider = context.watch<FeedProvider>();
+    final isFeedActive = feedProvider.isFeedActive && widget.isActive;
     final posts = feedProvider.posts;
+
+    if (!isFeedActive && (_videoController?.value.isPlaying ?? false)) {
+      _videoController?.pause();
+    }
 
     if (feedProvider.isLoading && posts.isEmpty) {
       return const Scaffold(
@@ -328,7 +366,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           )),
 
           // 3. Top Tabs Bar PINNED AT THE VERY TOP beneath Status Bar / Notch
-          // Uses Stack with centered tabs and pinned sides to PREVENT any crowding
+          // Uses balanced Row with proper spacing so LIVE button matches and never crowds tabs
           Positioned(
             top: 0,
             left: 0,
@@ -338,37 +376,36 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               bottom: false,
               child: SizedBox(
                 height: 44,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // LIVE Button strictly pinned to Left (12px)
-                    Positioned(
-                      left: 12,
-                      child: _buildLiveButton(context),
-                    ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // 1. LIVE Button cleanly positioned on the left
+                      _buildLiveButton(context),
 
-                    // Centered Top Tabs (Komunitas, Depok, Mengikuti, Saran)
-                    Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildTopTab(1, 'Komunitas'),
-                          const SizedBox(width: 10),
-                          _buildTopTab(2, 'Depok'),
-                          const SizedBox(width: 10),
-                          _buildTopTab(3, 'Mengikuti'),
-                          const SizedBox(width: 10),
-                          _buildTopTab(4, 'Saran'),
-                        ],
+                      const SizedBox(width: 8),
+
+                      // 2. Centered Top Tabs (Komunitas, Depok, Mengikuti, Saran) distributed evenly
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _buildTopTab(1, 'Komunitas'),
+                            _buildTopTab(2, 'Depok'),
+                            _buildTopTab(3, 'Mengikuti'),
+                            _buildTopTab(4, 'Saran'),
+                          ],
+                        ),
                       ),
-                    ),
 
-                    // Search Button strictly pinned to Right (12px)
-                    Positioned(
-                      right: 12,
-                      child: _buildSearchButton(context),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+
+                      // 3. Search Button on Right
+                      _buildSearchButton(context),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -762,25 +799,36 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       behavior: HitTestBehavior.opaque,
       onTap: () => _showLiveStreamModal(context),
       child: Container(
-        height: 24,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        height: 25,
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: Colors.white70, width: 1.2),
+          color: Colors.black.withOpacity(0.28),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.white.withOpacity(0.85), width: 1.1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.35),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.live_tv_rounded, color: Colors.white, size: 13),
-            SizedBox(width: 3.5),
+            Icon(Icons.live_tv_rounded, color: Colors.white, size: 14),
+            SizedBox(width: 4),
             Text(
               'LIVE',
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
-                letterSpacing: 0.5,
+                letterSpacing: 0.8,
+                shadows: [
+                  Shadow(color: Colors.black87, blurRadius: 3),
+                ],
               ),
             ),
           ],

@@ -38,6 +38,9 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+    Future.microtask(() {
+      if (mounted) context.read<FeedProvider>().setFeedActive(false);
+    });
     _initializeCurrentVideo();
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/presentation/providers/inbox_provider.dart';
+import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/widgets/tiktok_nav_bar.dart';
 import 'package:social_hub/presentation/screens/feed/feed_screen.dart';
 import 'package:social_hub/presentation/screens/community/community_screen.dart';
@@ -21,22 +22,18 @@ class _MainScreenState extends State<MainScreen> {
   int _previousIndex = 0;
   bool _isCameraOpen = false;
 
-  final List<Widget> _pages = const [
-    FeedScreen(),
-    CommunityScreen(),
-    SizedBox.shrink(), // Camera placeholder
-    InboxScreen(),
-    ProfileScreen(),
-  ];
-
   void _onTabSelected(int index) {
     if (index == 2) {
-      // Open Camera Studio
+      // Open Camera Studio: immediately stop Beranda video and sound
       _previousIndex = _currentIndex;
+      context.read<FeedProvider>().setFeedActive(false);
       setState(() {
         _isCameraOpen = true;
       });
     } else {
+      // If switching away from Beranda (index != 0), silence Beranda immediately!
+      final isFeedActive = (index == 0);
+      context.read<FeedProvider>().setFeedActive(isFeedActive);
       setState(() {
         _currentIndex = index;
       });
@@ -44,6 +41,8 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _closeCamera() {
+    final shouldResumeFeed = (_previousIndex == 0);
+    context.read<FeedProvider>().setFeedActive(shouldResumeFeed);
     setState(() {
       _isCameraOpen = false;
       _currentIndex = _previousIndex;
@@ -51,6 +50,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onPublishSuccess() {
+    context.read<FeedProvider>().setFeedActive(true);
     setState(() {
       _isCameraOpen = false;
       _currentIndex = 0; // Return straight to Beranda (Feed) to see the new post!
@@ -68,11 +68,21 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
+    final isFeedTabActive = (_currentIndex == 0 && !_isCameraOpen);
+
+    final pages = [
+      FeedScreen(isActive: isFeedTabActive),
+      const CommunityScreen(),
+      const SizedBox.shrink(), // Camera placeholder
+      const InboxScreen(),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: pages,
       ),
       bottomNavigationBar: TikTokNavBar(
         currentIndex: _currentIndex,

@@ -12,12 +12,21 @@ class FeedProvider extends ChangeNotifier {
   int _activePostIndex = 0;
   List<CommentEntity> _currentComments = [];
   bool _isLoadingComments = false;
+  bool _isFeedActive = true;
 
   List<PostEntity> get posts => _posts;
   bool get isLoading => _isLoading;
   int get activePostIndex => _activePostIndex;
   List<CommentEntity> get currentComments => _currentComments;
   bool get isLoadingComments => _isLoadingComments;
+  bool get isFeedActive => _isFeedActive;
+
+  void setFeedActive(bool active) {
+    if (_isFeedActive != active) {
+      _isFeedActive = active;
+      notifyListeners();
+    }
+  }
 
   Future<void> loadFeed() async {
     _isLoading = true;
