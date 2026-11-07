@@ -20,7 +20,7 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   late PageController _pageController;
-  int _activeTopTabIndex = 4; // 0: LIVE, 1: Komunitas, 2: Depok, 3: Mengikuti, 4: Saran
+  int _activeTopTabIndex = 4; // 1: Komunitas, 2: Depok, 3: Mengikuti, 4: Saran (Default FYP)
   final List<Offset> _heartPositions = [];
   final Set<int> _followedAuthors = {};
   late AnimationController _soundWaveController;
@@ -94,7 +94,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       context.read<FeedProvider>().toggleLike(post.id);
     }
 
-    Future.delayed(const Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 750), () {
       if (mounted) {
         setState(() {
           _heartPositions.remove(details.localPosition);
@@ -280,6 +280,17 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           PageView.builder(
             controller: _pageController,
             scrollDirection: Axis.vertical,
+            onPageChanged: (index) {
+              if (_videoController != null && _isVideoInitialized) {
+                if (index == 0) {
+                  _videoController!.play();
+                  setState(() => _isPlaying = true);
+                } else {
+                  _videoController!.pause();
+                  setState(() => _isPlaying = false);
+                }
+              }
+            },
             itemCount: displayPosts.length,
             itemBuilder: (context, index) {
               final post = displayPosts[index];
@@ -315,108 +326,53 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
             ),
           )),
 
-          // 3. Top Tabs Bar (LIVE, Komunitas, Depok, Mengikuti, Saran + Sound + Search)
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Row(
-                children: [
-                  // LIVE Icon
-                  GestureDetector(
-                    onTap: () {
-                      _showLiveStreamModal(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white70, width: 1.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'LIVE',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+          // 3. Top Tabs Bar PINNED AT THE VERY TOP beneath Status Bar / Notch
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              top: true,
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // LIVE Button on the far Left
+                    _buildLiveButton(context),
 
-                  // Middle Tabs (Komunitas, Depok, Mengikuti, Saran)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildTopTab(1, 'Komunitas'),
-                          _buildTopTab(2, 'Depok'),
-                          _buildTopTab(3, 'Mengikuti'),
-                          _buildTopTab(4, 'Saran'),
-                        ],
-                      ),
+                    // Centered Top Tabs (Komunitas, Depok, Mengikuti, Saran)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTopTab(1, 'Komunitas'),
+                        const SizedBox(width: 14),
+                        _buildTopTab(2, 'Depok'),
+                        const SizedBox(width: 14),
+                        _buildTopTab(3, 'Mengikuti'),
+                        const SizedBox(width: 14),
+                        _buildTopTab(4, 'Saran'),
+                      ],
                     ),
-                  ),
 
-                  // Audio Mute/Unmute Equalizer Toggle
-                  GestureDetector(
-                    onTap: () {
-                      AppAudioService.instance.toggleMute();
-                      if (_videoController != null && _isVideoInitialized) {
-                        _videoController!.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
-                      }
-                      setState(() {});
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(AppAudioService.instance.isMuted ? 'Suara Video Dimatikan' : 'Suara Video Diaktifkan ♫'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      margin: const EdgeInsets.only(right: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.35),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white24, width: 0.6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            AppAudioService.instance.isMuted ? Icons.volume_off : Icons.volume_up,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          if (!AppAudioService.instance.isMuted) ...[
-                            const SizedBox(width: 4),
-                            AnimatedBuilder(
-                              animation: _soundWaveController,
-                              builder: (context, _) {
-                                return Row(
-                                  children: [
-                                    Container(width: 2, height: 6 + (_soundWaveController.value * 6), color: AppColors.cyan),
-                                    const SizedBox(width: 2),
-                                    Container(width: 2, height: 12 - (_soundWaveController.value * 6), color: AppColors.primary),
-                                    const SizedBox(width: 2),
-                                    Container(width: 2, height: 8 + (_soundWaveController.value * 4), color: Colors.white),
-                                  ],
-                                );
-                              },
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Search Icon
-                  IconButton(
-                    icon: const Icon(Icons.search, color: Colors.white, size: 26),
-                    onPressed: () {
-                      _showSearchDialog(context);
-                    },
-                  ),
-                ],
+                    // Search Button on the far Right
+                    _buildSearchButton(context),
+                  ],
+                ),
               ),
+            ),
+          ),
+
+          // 4. Subtle Floating Sound Toggle (Mute/Unmute with Live Equalizer)
+          Positioned(
+            right: 14,
+            top: 80,
+            child: SafeArea(
+              top: true,
+              bottom: false,
+              child: _buildFloatingSoundToggle(),
             ),
           ),
         ],
@@ -432,6 +388,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     final isFollowing = _followedAuthors.contains(post.id);
 
     return GestureDetector(
+      behavior: HitTestBehavior.translucent,
       onTap: isFirstItem ? _togglePlayPause : null,
       onDoubleTapDown: (details) => _onDoubleTap(details, currentPostInState),
       child: Stack(
@@ -468,23 +425,25 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                   color: Colors.black.withOpacity(0.5),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.play_arrow, color: Colors.white, size: 48),
+                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 52),
               ),
             ),
 
           // B. High-Fidelity Readability Gradients (Top & Bottom)
           Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.black.withOpacity(0.52),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.72),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0.0, 0.45, 1.0],
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withOpacity(0.55),
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.78),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.35, 1.0],
+                  ),
                 ),
               ),
             ),
@@ -492,32 +451,45 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
 
           // C. Right Side Action Bar (Flag, Avatar with +, Heart, Comment, Bookmark, Share, Music Disc)
           Positioned(
-            right: 12,
-            bottom: 75,
+            right: 10,
+            bottom: 12,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Flag / Report icon
+                // 1. Flag / Report icon
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Laporan konten terkirim ke moderator.')),
+                      const SnackBar(
+                        content: Text('Laporan konten terkirim ke tim moderasi Social Hub.'),
+                        duration: Duration(seconds: 1),
+                      ),
                     );
                   },
-                  child: const Icon(Icons.flag_outlined, color: Colors.white70, size: 24),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(
+                      Icons.outlined_flag_rounded,
+                      color: Colors.white70,
+                      size: 25,
+                      shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 14),
 
-                // Avatar with '+' Follow button
+                // 2. Avatar with '+' Follow button
                 _buildAuthorAvatar(
                   currentPostInState.authorAvatar,
                   isFollowing: isFollowing,
                   onFollowTap: () => _toggleFollowAuthor(post.id, currentPostInState.authorName),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
 
-                // Like button
+                // 3. Like button
                 _buildActionButton(
-                  icon: currentPostInState.isLiked ? Icons.favorite : Icons.favorite,
+                  icon: Icons.favorite,
                   iconColor: currentPostInState.isLiked ? AppColors.primary : Colors.white,
                   label: Formatters.formatCount(currentPostInState.likesCount),
                   onTap: () {
@@ -525,11 +497,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                     feedProvider.toggleLike(currentPostInState.id);
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // Comment button
+                // 4. Comment button
                 _buildActionButton(
-                  icon: Icons.chat_bubble,
+                  icon: Icons.chat_bubble_rounded,
                   iconColor: Colors.white,
                   label: Formatters.formatThousands(currentPostInState.commentsCount),
                   onTap: () {
@@ -544,11 +516,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                     );
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // Bookmark button
+                // 5. Bookmark button
                 _buildActionButton(
-                  icon: currentPostInState.isBookmarked ? Icons.bookmark : Icons.bookmark,
+                  icon: Icons.bookmark_rounded,
                   iconColor: currentPostInState.isBookmarked ? const Color(0xFFFFD700) : Colors.white,
                   label: Formatters.formatCount(currentPostInState.bookmarksCount),
                   onTap: () {
@@ -562,11 +534,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                     );
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // Share button
+                // 6. Share button
                 _buildActionButton(
-                  icon: Icons.reply,
+                  icon: Icons.reply_rounded,
                   iconColor: Colors.white,
                   label: Formatters.formatCount(currentPostInState.sharesCount),
                   isMirrored: true,
@@ -578,10 +550,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                     );
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
 
-                // Rotating Music Disc
+                // 7. Rotating Music Disc
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => _showSoundSheet(context, currentPostInState.musicTitle),
                   child: RotatingMusicDisc(imagePath: currentPostInState.authorAvatar),
                 ),
@@ -592,41 +565,46 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           // D. Bottom Left Overlay: Effect Tag, Author Name, Caption, Music Ticker, Search Recommendation
           Positioned(
             left: 14,
-            right: 80,
-            bottom: 24,
+            right: 84,
+            bottom: 12,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Effect Tag: "Natural Creamy | 2 ∨"
+                // 1. Effect Tag: "Natural Creamy | 2 ∨"
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Filter Natural Creamy diterapkan!')),
+                      const SnackBar(content: Text('Filter Natural Creamy diterapkan! ✨'), duration: Duration(seconds: 1)),
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.4),
+                      color: Colors.black.withOpacity(0.45),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, color: Colors.amber, size: 13),
+                        Icon(Icons.auto_awesome, color: Color(0xFFFFB800), size: 13),
                         SizedBox(width: 4),
                         Text(
                           'Natural Creamy  |  2 ∨',
-                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
-                // Author Name with Verified badge
+                // 2. Author Name with Verified badge
                 Row(
                   children: [
                     Text(
@@ -639,29 +617,33 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                       ),
                     ),
                     const SizedBox(width: 5),
-                    const Icon(Icons.check_circle, color: Color(0xFF20D5EC), size: 16),
+                    const Icon(Icons.check_circle_rounded, color: Color(0xFF20D5EC), size: 16),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
 
-                // Caption
+                // 3. Caption
                 Text(
                   currentPostInState.caption,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13.5,
+                    fontSize: 13,
                     color: Colors.white,
+                    height: 1.25,
                     shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
-                // Music Track ticker (Clickable)
+                // 4. Music Track ticker (Clickable)
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => _showSoundSheet(context, currentPostInState.musicTitle),
                   child: Row(
                     children: [
-                      const Icon(Icons.music_note, color: Colors.white, size: 14),
-                      const SizedBox(width: 6),
+                      const Icon(Icons.music_note_rounded, color: Colors.white, size: 14),
+                      const SizedBox(width: 5),
                       Expanded(
                         child: Text(
                           currentPostInState.musicTitle,
@@ -671,35 +653,41 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                             fontSize: 12.5,
                             color: Colors.white,
                             fontWeight: FontWeight.w500,
+                            shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
 
-                // Search Recommendation Pill (Clickable)
+                // 5. Search Recommendation Pill (Clickable)
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => _showSearchDialog(context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5.5),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
+                      color: Colors.black.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.white24, width: 0.6),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.search, size: 14, color: Colors.white70),
+                        const Icon(Icons.search_rounded, size: 14, color: Colors.white70),
                         const SizedBox(width: 6),
-                        Text(
-                          isFirstItem ? 'Pencarian · andrian wisudawan terbaik' : 'Pencarian · aurel nangis liat ameena',
-                          style: const TextStyle(fontSize: 11.5, color: Colors.white),
+                        Expanded(
+                          child: Text(
+                            isFirstItem
+                                ? 'Pencarian · andrian wisudawan terbaik'
+                                : 'Pencarian · aurel nangis liat ameena',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11.5, color: Colors.white),
+                          ),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right, size: 14, color: Colors.white70),
+                        const Icon(Icons.chevron_right_rounded, size: 14, color: Colors.white70),
                       ],
                     ),
                   ),
@@ -712,36 +700,151 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildLiveButton(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showLiveStreamModal(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: Colors.white70, width: 1.2),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.live_tv_rounded, color: Colors.white, size: 13),
+            SizedBox(width: 4),
+            Text(
+              'LIVE',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTopTab(int index, String label) {
     final isSelected = _activeTopTabIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _activeTopTabIndex = index),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Column(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        setState(() => _activeTopTabIndex = index);
+        AppAudioService.instance.playPopSound();
+        if (index == 1) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Feed Komunitas Terkini'), duration: Duration(milliseconds: 900)),
+          );
+        } else if (index == 2) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Feed Sekitar Depok (Lokasi Terdekat) 📍'), duration: Duration(milliseconds: 900)),
+          );
+        } else if (index == 3) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Feed Akun yang Anda Ikuti'), duration: Duration(milliseconds: 900)),
+          );
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? Colors.white : Colors.white60,
+              shadows: const [
+                Shadow(color: Colors.black87, blurRadius: 4),
+              ],
+            ),
+          ),
+          const SizedBox(height: 3),
+          Container(
+            width: isSelected ? 26 : 0,
+            height: 2.5,
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white : Colors.transparent,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchButton(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showSearchDialog(context),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        child: const Icon(
+          Icons.search_rounded,
+          color: Colors.white,
+          size: 26,
+          shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingSoundToggle() {
+    final isMuted = AppAudioService.instance.isMuted;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        AppAudioService.instance.toggleMute();
+        if (_videoController != null && _isVideoInitialized) {
+          _videoController!.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
+        }
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppAudioService.instance.isMuted ? 'Suara Video Dimatikan 🔇' : 'Suara Video Diaktifkan 🔊♫'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.42),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white24, width: 0.6),
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.white : Colors.white60,
-                shadows: const [Shadow(color: Colors.black87, blurRadius: 4)],
-              ),
+            Icon(
+              isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+              color: Colors.white,
+              size: 13,
             ),
-            const SizedBox(height: 4),
-            if (isSelected)
-              Container(
-                width: 28,
-                height: 2.2,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              )
-            else
-              const SizedBox(height: 2.2),
+            if (!isMuted) ...[
+              const SizedBox(width: 4),
+              AnimatedBuilder(
+                animation: _soundWaveController,
+                builder: (context, _) {
+                  return Row(
+                    children: [
+                      Container(width: 1.8, height: 4 + (_soundWaveController.value * 5), color: AppColors.cyan),
+                      const SizedBox(width: 1.5),
+                      Container(width: 1.8, height: 9 - (_soundWaveController.value * 4), color: AppColors.primary),
+                      const SizedBox(width: 1.5),
+                      Container(width: 1.8, height: 6 + (_soundWaveController.value * 3), color: Colors.white),
+                    ],
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -776,8 +879,10 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         Positioned(
           bottom: -7,
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: onFollowTap,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
               width: 20,
               height: 20,
               decoration: BoxDecoration(
@@ -805,17 +910,19 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     bool isMirrored = false,
   }) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Transform(
             alignment: Alignment.center,
             transform: Matrix4.rotationY(isMirrored ? 3.14159 : 0),
             child: Icon(
               icon,
-              size: 34,
+              size: 32,
               color: iconColor,
-              shadows: const [Shadow(color: Colors.black87, blurRadius: 6)],
+              shadows: const [Shadow(color: Colors.black87, blurRadius: 4)],
             ),
           ),
           const SizedBox(height: 3),
@@ -842,6 +949,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Row(
               children: [
@@ -855,6 +963,35 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               'Tonton siaran langsung ribuan kreator, berikan koin hadiah dan berkomentar langsung secara interaktif!',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: const Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundImage: AssetImage(AppAssets.imgProfile),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Andrian Pei • LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5)),
+                        SizedBox(height: 2),
+                        Text('Q&A Wisuda & Karir Software Engineer 🚀', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.play_circle_fill, color: AppColors.primary, size: 30),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -865,7 +1002,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Jelajahi Siaran LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text('Jelajahi Semua LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -879,21 +1016,67 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E24),
-        title: const Text('Cari Konten & Kreator', style: TextStyle(color: Colors.white, fontSize: 16)),
-        content: TextField(
-          autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Ketik nama kreator atau tren...',
-            prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-            fillColor: Colors.black.withOpacity(0.3),
-          ),
-          onSubmitted: (val) {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Mencari "$val"...')),
-            );
-          },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.search_rounded, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Cari di Social Hub', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Ketik nama kreator, video, atau tagar...',
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                prefixIcon: const Icon(Icons.search, color: AppColors.primary, size: 20),
+                filled: true,
+                fillColor: Colors.black.withOpacity(0.35),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+              onSubmitted: (val) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Mencari "$val"... ✨')),
+                );
+              },
+            ),
+            const SizedBox(height: 14),
+            const Text('Tren Populer:', style: TextStyle(color: AppColors.textSecondary, fontSize: 11.5, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                '#wisuda2026',
+                '#wisudawanterbaik',
+                '#informatika',
+                '#andrianpei',
+                '#socialhub',
+              ].map((tag) => GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Mencari $tag... ✨')),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(tag, style: const TextStyle(color: Colors.white, fontSize: 11.5)),
+                ),
+              )).toList(),
+            ),
+          ],
         ),
       ),
     );
