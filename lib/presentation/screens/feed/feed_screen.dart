@@ -65,6 +65,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
 
   void _togglePlayPause() {
     if (_videoController == null || !_isVideoInitialized) return;
+    AppAudioService.instance.playPopSound();
     setState(() {
       if (_videoController!.value.isPlaying) {
         _videoController!.pause();
@@ -327,6 +328,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           )),
 
           // 3. Top Tabs Bar PINNED AT THE VERY TOP beneath Status Bar / Notch
+          // Uses Stack with centered tabs and pinned sides to PREVENT any crowding
           Positioned(
             top: 0,
             left: 0,
@@ -334,31 +336,38 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
             child: SafeArea(
               top: true,
               bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              child: SizedBox(
+                height: 44,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    // LIVE Button on the far Left
-                    _buildLiveButton(context),
-
-                    // Centered Top Tabs (Komunitas, Depok, Mengikuti, Saran)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildTopTab(1, 'Komunitas'),
-                        const SizedBox(width: 14),
-                        _buildTopTab(2, 'Depok'),
-                        const SizedBox(width: 14),
-                        _buildTopTab(3, 'Mengikuti'),
-                        const SizedBox(width: 14),
-                        _buildTopTab(4, 'Saran'),
-                      ],
+                    // LIVE Button strictly pinned to Left (12px)
+                    Positioned(
+                      left: 12,
+                      child: _buildLiveButton(context),
                     ),
 
-                    // Search Button on the far Right
-                    _buildSearchButton(context),
+                    // Centered Top Tabs (Komunitas, Depok, Mengikuti, Saran)
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildTopTab(1, 'Komunitas'),
+                          const SizedBox(width: 10),
+                          _buildTopTab(2, 'Depok'),
+                          const SizedBox(width: 10),
+                          _buildTopTab(3, 'Mengikuti'),
+                          const SizedBox(width: 10),
+                          _buildTopTab(4, 'Saran'),
+                        ],
+                      ),
+                    ),
+
+                    // Search Button strictly pinned to Right (12px)
+                    Positioned(
+                      right: 12,
+                      child: _buildSearchButton(context),
+                    ),
                   ],
                 ),
               ),
@@ -368,7 +377,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           // 4. Subtle Floating Sound Toggle (Mute/Unmute with Live Equalizer)
           Positioned(
             right: 14,
-            top: 80,
+            top: 76,
             child: SafeArea(
               top: true,
               bottom: false,
@@ -387,25 +396,23 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     );
     final isFollowing = _followedAuthors.contains(post.id);
 
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: isFirstItem ? _togglePlayPause : null,
-      onDoubleTapDown: (details) => _onDoubleTap(details, currentPostInState),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // A1. Crisp Poster Image (Always rendered underneath so screen is NEVER black)
-          Image.asset(
-            post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            alignment: Alignment.center,
-          ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // A1. Crisp Poster Image (Always rendered underneath so screen is NEVER black)
+        Image.asset(
+          post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          alignment: Alignment.center,
+        ),
 
-          // A2. Video Player for first item (Andrian's Video)
-          if (isFirstItem && _isVideoInitialized && _videoController != null)
-            SizedBox.expand(
+        // A2. Video Player for first item (Andrian's Video)
+        // Wrapped with IgnorePointer so native HTML element does NOT swallow Flutter taps or trigger Edge PiP toolbar
+        if (isFirstItem && _isVideoInitialized && _videoController != null)
+          IgnorePointer(
+            child: SizedBox.expand(
               child: FittedBox(
                 fit: BoxFit.cover,
                 child: SizedBox(
@@ -415,288 +422,338 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                 ),
               ),
             ),
+          ),
 
-          // Pause Indicator when video is paused
-          if (isFirstItem && !_isPlaying)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 52),
-              ),
-            ),
-
-          // B. High-Fidelity Readability Gradients (Top & Bottom)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.black.withOpacity(0.55),
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.78),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.35, 1.0],
-                  ),
+        // B. High-Fidelity Readability Gradients (Top & Bottom)
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withOpacity(0.55),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.82),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.35, 1.0],
                 ),
               ),
             ),
           ),
+        ),
 
-          // C. Right Side Action Bar (Flag, Avatar with +, Heart, Comment, Bookmark, Share, Music Disc)
-          Positioned(
-            right: 10,
-            bottom: 12,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 1. Flag / Report icon
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Laporan konten terkirim ke tim moderasi Social Hub.'),
-                        duration: Duration(seconds: 1),
+        // C. Direct Full-Screen Tap-To-Pause / Double-Tap-To-Like Detector Layer
+        // Guarantees 100% reliable pause/play response when tapping anywhere on the video
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: isFirstItem ? _togglePlayPause : null,
+            onDoubleTapDown: (details) => _onDoubleTap(details, currentPostInState),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+
+        // Pause Indicator in Center when video is paused
+        if (isFirstItem && !_isPlaying)
+          Center(
+            child: IgnorePointer(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.75, end: 1.0),
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutBack,
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.55),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white24, width: 2),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black54, blurRadius: 16),
+                        ],
                       ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    child: const Icon(
-                      Icons.outlined_flag_rounded,
-                      color: Colors.white70,
-                      size: 25,
+                      child: const Center(
+                        child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 48),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+        // D. Right Side Action Bar (Flag, Avatar with +, Heart, Comment, Bookmark, Share, Music Disc)
+        Positioned(
+          right: 10,
+          bottom: 12,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Flag / Report icon
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Laporan konten terkirim ke tim moderasi Social Hub.'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: const Icon(
+                    Icons.outlined_flag_rounded,
+                    color: Colors.white70,
+                    size: 25,
+                    shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // 2. Avatar with '+' Follow button
+              _buildAuthorAvatar(
+                currentPostInState.authorAvatar,
+                isFollowing: isFollowing,
+                onFollowTap: () => _toggleFollowAuthor(post.id, currentPostInState.authorName),
+              ),
+              const SizedBox(height: 16),
+
+              // 3. Like button
+              _buildActionButton(
+                icon: Icons.favorite,
+                iconColor: currentPostInState.isLiked ? AppColors.primary : Colors.white,
+                label: Formatters.formatCount(currentPostInState.likesCount),
+                onTap: () {
+                  AppAudioService.instance.playPopSound();
+                  feedProvider.toggleLike(currentPostInState.id);
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // 4. Comment button
+              _buildActionButton(
+                icon: Icons.chat_bubble_rounded,
+                iconColor: Colors.white,
+                label: Formatters.formatThousands(currentPostInState.commentsCount),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => CommentsSheet(
+                      postId: currentPostInState.id,
+                      totalComments: currentPostInState.commentsCount,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // 5. Bookmark button
+              _buildActionButton(
+                icon: Icons.bookmark_rounded,
+                iconColor: currentPostInState.isBookmarked ? const Color(0xFFFFD700) : Colors.white,
+                label: Formatters.formatCount(currentPostInState.bookmarksCount),
+                onTap: () {
+                  AppAudioService.instance.playChimeSound();
+                  feedProvider.toggleBookmark(currentPostInState.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(currentPostInState.isBookmarked ? 'Dihapus dari Favorit' : 'Disimpan ke Favorit ✨'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // 6. Share button
+              _buildActionButton(
+                icon: Icons.reply_rounded,
+                iconColor: Colors.white,
+                label: Formatters.formatCount(currentPostInState.sharesCount),
+                isMirrored: true,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const ShareSheet(),
+                  );
+                },
+              ),
+              const SizedBox(height: 18),
+
+              // 7. Rotating Music Disc
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showSoundSheet(context, currentPostInState.musicTitle),
+                child: RotatingMusicDisc(imagePath: currentPostInState.authorAvatar),
+              ),
+            ],
+          ),
+        ),
+
+        // E. Bottom Left Overlay: Effect Tag, Author Name, Caption, Music Ticker, Search Recommendation
+        Positioned(
+          left: 14,
+          right: 84,
+          bottom: 12,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Effect Tag matching Reference: "[ 🌟 Natural Creamy | 2 ⌵ ]"
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Filter Natural Creamy diterapkan! ✨'), duration: Duration(seconds: 1)),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.42),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(2.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: const Icon(Icons.auto_awesome, color: Colors.white, size: 10),
+                      ),
+                      const SizedBox(width: 5),
+                      const Text(
+                        'Natural Creamy  |  2 ⌵',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+
+              // 2. Author Name with Verified badge
+              Row(
+                children: [
+                  Text(
+                    currentPostInState.authorName,
+                    style: const TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                       shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(width: 5),
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF20D5EC), size: 15),
+                ],
+              ),
+              const SizedBox(height: 5),
 
-                // 2. Avatar with '+' Follow button
-                _buildAuthorAvatar(
-                  currentPostInState.authorAvatar,
-                  isFollowing: isFollowing,
-                  onFollowTap: () => _toggleFollowAuthor(post.id, currentPostInState.authorName),
-                ),
-                const SizedBox(height: 16),
-
-                // 3. Like button
-                _buildActionButton(
-                  icon: Icons.favorite,
-                  iconColor: currentPostInState.isLiked ? AppColors.primary : Colors.white,
-                  label: Formatters.formatCount(currentPostInState.likesCount),
-                  onTap: () {
-                    AppAudioService.instance.playPopSound();
-                    feedProvider.toggleLike(currentPostInState.id);
-                  },
-                ),
-                const SizedBox(height: 14),
-
-                // 4. Comment button
-                _buildActionButton(
-                  icon: Icons.chat_bubble_rounded,
-                  iconColor: Colors.white,
-                  label: Formatters.formatThousands(currentPostInState.commentsCount),
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => CommentsSheet(
-                        postId: currentPostInState.id,
-                        totalComments: currentPostInState.commentsCount,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-
-                // 5. Bookmark button
-                _buildActionButton(
-                  icon: Icons.bookmark_rounded,
-                  iconColor: currentPostInState.isBookmarked ? const Color(0xFFFFD700) : Colors.white,
-                  label: Formatters.formatCount(currentPostInState.bookmarksCount),
-                  onTap: () {
-                    AppAudioService.instance.playChimeSound();
-                    feedProvider.toggleBookmark(currentPostInState.id);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(currentPostInState.isBookmarked ? 'Dihapus dari Favorit' : 'Disimpan ke Favorit ✨'),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-
-                // 6. Share button
-                _buildActionButton(
-                  icon: Icons.reply_rounded,
-                  iconColor: Colors.white,
-                  label: Formatters.formatCount(currentPostInState.sharesCount),
-                  isMirrored: true,
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => const ShareSheet(),
-                    );
-                  },
-                ),
-                const SizedBox(height: 18),
-
-                // 7. Rotating Music Disc
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showSoundSheet(context, currentPostInState.musicTitle),
-                  child: RotatingMusicDisc(imagePath: currentPostInState.authorAvatar),
-                ),
-              ],
-            ),
-          ),
-
-          // D. Bottom Left Overlay: Effect Tag, Author Name, Caption, Music Ticker, Search Recommendation
-          Positioned(
-            left: 14,
-            right: 84,
-            bottom: 12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 1. Effect Tag: "Natural Creamy | 2 ∨"
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Filter Natural Creamy diterapkan! ✨'), duration: Duration(seconds: 1)),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome, color: Color(0xFFFFB800), size: 13),
-                        SizedBox(width: 4),
-                        Text(
-                          'Natural Creamy  |  2 ∨',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-
-                // 2. Author Name with Verified badge
-                Row(
-                  children: [
-                    Text(
-                      currentPostInState.authorName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    const Icon(Icons.check_circle_rounded, color: Color(0xFF20D5EC), size: 16),
-                  ],
-                ),
-                const SizedBox(height: 5),
-
-                // 3. Caption
-                Text(
-                  currentPostInState.caption,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+              // 3. Caption formatted cleanly without awkward cutoffs
+              RichText(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
                   style: const TextStyle(
                     fontSize: 13,
                     color: Colors.white,
                     height: 1.25,
                     shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
                   ),
+                  children: [
+                    const TextSpan(
+                      text: 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik!\nTerima kasih untuk semua dukungannya ✨ ',
+                    ),
+                    TextSpan(
+                      text: '#wisuda #unpam #fyp',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withOpacity(0.95),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
+              ),
+              const SizedBox(height: 6),
 
-                // 4. Music Track ticker (Clickable)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showSoundSheet(context, currentPostInState.musicTitle),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.music_note_rounded, color: Colors.white, size: 14),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          currentPostInState.musicTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                            shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
-                          ),
+              // 4. Music Track ticker (Clickable)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showSoundSheet(context, currentPostInState.musicTitle),
+                child: Row(
+                  children: [
+                    const Icon(Icons.music_note_rounded, color: Colors.white, size: 14),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        currentPostInState.musicTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
                         ),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // 5. Search Recommendation Pill (Clickable)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showSearchDialog(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5.5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.48),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white24, width: 0.6),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search_rounded, size: 13.5, color: Colors.white70),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          isFirstItem
+                              ? 'Pencarian · andrian wisudawan terbaik'
+                              : 'Pencarian · aurel nangis liat ameena',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11.5, color: Colors.white),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, size: 14, color: Colors.white70),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-
-                // 5. Search Recommendation Pill (Clickable)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showSearchDialog(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5.5),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white24, width: 0.6),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search_rounded, size: 14, color: Colors.white70),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            isFirstItem
-                                ? 'Pencarian · andrian wisudawan terbaik'
-                                : 'Pencarian · aurel nangis liat ameena',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11.5, color: Colors.white),
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right_rounded, size: 14, color: Colors.white70),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -705,7 +762,8 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       behavior: HitTestBehavior.opaque,
       onTap: () => _showLiveStreamModal(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        height: 24,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.2),
           borderRadius: BorderRadius.circular(5),
@@ -715,11 +773,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.live_tv_rounded, color: Colors.white, size: 13),
-            SizedBox(width: 4),
+            SizedBox(width: 3.5),
             Text(
               'LIVE',
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 10,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
                 letterSpacing: 0.5,
@@ -758,9 +816,9 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           Text(
             label,
             style: TextStyle(
-              fontSize: 15,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? Colors.white : Colors.white60,
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? Colors.white : Colors.white.withOpacity(0.65),
               shadows: const [
                 Shadow(color: Colors.black87, blurRadius: 4),
               ],
@@ -768,7 +826,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 3),
           Container(
-            width: isSelected ? 26 : 0,
+            width: isSelected ? 24 : 0,
             height: 2.5,
             decoration: BoxDecoration(
               color: isSelected ? Colors.white : Colors.transparent,
@@ -789,7 +847,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         child: const Icon(
           Icons.search_rounded,
           color: Colors.white,
-          size: 26,
+          size: 25,
           shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
         ),
       ),

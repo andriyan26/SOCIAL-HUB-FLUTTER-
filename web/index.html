@@ -19,6 +19,24 @@
 
   <title>Social Hub (iPhone 13)</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Disable Edge / Chrome native floating video toolbar (PiP and Video Enhance buttons) */
+    video {
+      pointer-events: none !important;
+      -webkit-user-select: none !important;
+      user-select: none !important;
+    }
+    video::-webkit-media-controls {
+      display: none !important;
+    }
+    video::-webkit-media-controls-enclosure {
+      display: none !important;
+    }
+    video::-webkit-media-controls-picture-in-picture-button {
+      display: none !important;
+    }
+  </style>
 </head>
 <body style="background-color: #07080A; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh;">
   <script>
@@ -30,6 +48,19 @@
         }
       });
     }
+
+    // Disable native browser PiP and enhancement overlay on all injected video tags
+    const observer = new MutationObserver(function(mutations) {
+      document.querySelectorAll('video').forEach(function(vid) {
+        try {
+          vid.disablePictureInPicture = true;
+          vid.setAttribute('disablePictureInPicture', 'true');
+          vid.setAttribute('controlsList', 'nodownload noplaybackrate noremoteplayback');
+          vid.style.pointerEvents = 'none';
+        } catch(e) {}
+      });
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
