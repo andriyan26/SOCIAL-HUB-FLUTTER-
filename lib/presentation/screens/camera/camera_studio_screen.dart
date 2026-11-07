@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/presentation/providers/camera_provider.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
+import 'package:social_hub/presentation/providers/profile_provider.dart';
+import 'package:social_hub/presentation/providers/feed_provider.dart';
 
 class CameraStudioScreen extends StatefulWidget {
   final VoidCallback? onClose;
