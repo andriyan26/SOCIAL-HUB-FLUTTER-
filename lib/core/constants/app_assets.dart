@@ -5,6 +5,9 @@ class AppAssets {
   static const String videoLogin = 'assets/videos/konsep_login.mp4';
   static const String videoAndrian = 'assets/videos/andrian_feed.mp4';
 
+  // Audio
+  static const String splashSound = 'assets/audio/splash_sound.mp3';
+
   // Screenshots / UI references / Mock media
   static const String imgFeed = 'assets/images/img_8664.jpg';
   static const String imgFriends = 'assets/images/img_8665.jpg';

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:social_hub/presentation/widgets/sh_logo_painter.dart';
+import 'web_audio_helper.dart';
 
 class AnimatedSplashScreen extends StatefulWidget {
   final VoidCallback onCompleted;
@@ -16,72 +17,176 @@ class AnimatedSplashScreen extends StatefulWidget {
 }
 
 class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with TickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late AnimationController _entranceController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _glowAnimation;
-  late Animation<double> _fadeAnimation;
+  // Master Animation Controllers
+  late AnimationController _traceController;       // Phase 1: 0.0s - 1.8s
+  late AnimationController _impactController;      // Phase 2: 1.8s - 2.5s
+  late AnimationController _brandController;       // Phase 3: 2.5s - 3.4s
+  late AnimationController _ambientPulseController; // Ongoing breathing glow
+  late AnimationController _glitchController;      // Micro glitch twitch
 
+  // Tweens & Curves
+  late Animation<double> _traceAnimation;
+  late Animation<double> _fillAnimation;
+  late Animation<double> _flashAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _brandFade;
+  late Animation<double> _brandSlide;
+  late Animation<double> _lineWidth;
+
+  // Glitch offset state
+  Offset _glitchOffset = Offset.zero;
+  Timer? _glitchTimer;
+
+  // Bottom Progress
   double _progress = 0.0;
   Timer? _ticker;
+
+  // Spark burst particles
+  late List<_BurstParticle> _particles;
 
   @override
   void initState() {
     super.initState();
 
-    // Breathing glow animation
-    _pulseController = AnimationController(
+    // 1. Play native sound matching the concept video
+    playSplashAudioNative();
+
+    // 2. Initialize spark burst particles (28 particles in Cyan, Magenta, White)
+    final rand = math.Random(42);
+    final colors = [
+      const Color(0xFF00F2FE),
+      const Color(0xFFFE2C55),
+      Colors.white,
+      const Color(0xFF00F2FE),
+      const Color(0xFFFF2A6D),
+    ];
+    _particles = List.generate(28, (i) {
+      return _BurstParticle(
+        angle: rand.nextDouble() * 2 * math.pi,
+        distance: 40.0 + rand.nextDouble() * 110.0,
+        size: 2.0 + rand.nextDouble() * 3.5,
+        color: colors[i % colors.length],
+      );
+    });
+
+    // 3. Phase 1: Stroke Tracing (0 to 1800ms)
+    _traceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _traceAnimation = CurvedAnimation(
+      parent: _traceController,
+      curve: Curves.easeInOutCubic,
+    );
+
+    // 4. Phase 2: Impact Flash & Solid Fill (800ms)
+    _impactController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fillAnimation = CurvedAnimation(
+      parent: _impactController,
+      curve: Curves.easeOutBack,
+    );
+    // Flash peaks early then fades
+    _flashAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 35),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 65),
+    ]).animate(CurvedAnimation(parent: _impactController, curve: Curves.easeOut));
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.09), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.09, end: 1.0), weight: 70),
+    ]).animate(CurvedAnimation(parent: _impactController, curve: Curves.easeOutBack));
+
+    // 5. Phase 3: Brand Reveal (900ms)
+    _brandController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _brandFade = CurvedAnimation(parent: _brandController, curve: Curves.easeIn);
+    _brandSlide = Tween<double>(begin: 24.0, end: 0.0).animate(
+      CurvedAnimation(parent: _brandController, curve: Curves.easeOutCubic),
+    );
+    _lineWidth = Tween<double>(begin: 0.0, end: 170.0).animate(
+      CurvedAnimation(parent: _brandController, curve: Curves.easeOutCubic),
+    );
+
+    // 6. Ambient Breathing Glow
+    _ambientPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
 
-    // Entrance zoom & fade animation
-    _entranceController = AnimationController(
+    // 7. Micro Glitch Controller
+    _glitchController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 120),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.82, end: 1.0).animate(
-      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
-    );
+    // Sequence Choreography
+    _traceController.forward().then((_) {
+      if (!mounted) return;
+      _impactController.forward().then((_) {
+        if (!mounted) return;
+        _brandController.forward();
+      });
+    });
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _entranceController,
-      curve: Curves.easeIn,
-    );
+    // Periodic chromatic glitch twitches after impact
+    _glitchTimer = Timer.periodic(const Duration(milliseconds: 750), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_impactController.value > 0.5) {
+        final r = math.Random();
+        setState(() {
+          _glitchOffset = Offset((r.nextDouble() - 0.5) * 5.0, (r.nextDouble() - 0.5) * 2.5);
+        });
+        Future.delayed(const Duration(milliseconds: 80), () {
+          if (mounted) {
+            setState(() {
+              _glitchOffset = Offset.zero;
+            });
+          }
+        });
+      }
+    });
 
-    _glowAnimation = Tween<double>(begin: 0.85, end: 1.3).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    _entranceController.forward();
-
-    // Auto progress over 3.2 seconds
-    _ticker = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+    // Auto progress over 4.2 seconds
+    _ticker = Timer.periodic(const Duration(milliseconds: 35), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
       setState(() {
-        _progress = (_progress + 0.013).clamp(0.0, 1.0);
+        _progress = (_progress + 0.009).clamp(0.0, 1.0);
       });
       if (_progress >= 1.0) {
         timer.cancel();
-        widget.onCompleted();
+        _skip();
       }
     });
   }
 
   void _skip() {
     _ticker?.cancel();
+    _glitchTimer?.cancel();
+    stopSplashAudioNative();
     widget.onCompleted();
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
-    _pulseController.dispose();
-    _entranceController.dispose();
+    _glitchTimer?.cancel();
+    stopSplashAudioNative();
+    _traceController.dispose();
+    _impactController.dispose();
+    _brandController.dispose();
+    _ambientPulseController.dispose();
+    _glitchController.dispose();
     super.dispose();
   }
 
@@ -95,49 +200,60 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Immersive Ambient Radial Glow in the background
-            Center(
-              child: Container(
-                width: 360,
-                height: 360,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFFFE2C55).withOpacity(0.14),
-                      const Color(0xFF00F2FE).withOpacity(0.09),
-                      Colors.transparent,
-                    ],
-                    radius: 0.72,
+            // -----------------------------------------------------------
+            // 1. Immersive Deep Radial Ambient Aura (No hard circular edges)
+            // -----------------------------------------------------------
+            AnimatedBuilder(
+              animation: _ambientPulseController,
+              builder: (context, _) {
+                final breath = 0.85 + 0.25 * _ambientPulseController.value;
+                return Center(
+                  child: Container(
+                    width: 480 * breath,
+                    height: 480 * breath,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          const Color(0xFFFE2C55).withOpacity(0.14),
+                          const Color(0xFF00F2FE).withOpacity(0.10),
+                          const Color(0xFF07080C).withOpacity(0.0),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
 
-            // 2. Floating Cyberpunk Neon Dust Particles
-            ...List.generate(8, (i) {
-              final angle = i * (math.pi / 4);
+            // -----------------------------------------------------------
+            // 2. Floating Cyberpunk Micro Embers (Drifting upwards)
+            // -----------------------------------------------------------
+            ...List.generate(12, (i) {
+              final angle = i * (math.pi / 6);
               return AnimatedBuilder(
-                animation: _pulseController,
+                animation: _ambientPulseController,
                 builder: (context, _) {
-                  final dist = 110.0 + 25.0 * math.sin(_pulseController.value * math.pi * 2 + i * 0.8);
-                  final dx = dist * math.cos(angle);
-                  final dy = dist * math.sin(angle);
+                  final t = _ambientPulseController.value;
+                  final dist = 120.0 + 35.0 * math.sin(t * math.pi * 2 + i * 0.7);
+                  final dx = dist * math.cos(angle + t * 0.4);
+                  final dy = dist * math.sin(angle + t * 0.4) - (t * 20);
                   final isCyan = i % 2 == 0;
                   return Center(
                     child: Transform.translate(
                       offset: Offset(dx, dy),
                       child: Container(
-                        width: isCyan ? 4.5 : 3.5,
-                        height: isCyan ? 4.5 : 3.5,
+                        width: isCyan ? 3.5 : 2.5,
+                        height: isCyan ? 3.5 : 2.5,
                         decoration: BoxDecoration(
                           color: isCyan ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
                               color: isCyan ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
-                              blurRadius: 10,
-                              spreadRadius: 2,
+                              blurRadius: 8,
+                              spreadRadius: 1.5,
                             ),
                           ],
                         ),
@@ -148,76 +264,176 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
               );
             }),
 
-            // 3. Center Animated "SH" (Social Hub) Logo & Branding
-            Center(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 3D Neon "SH" Monogram
-                      AnimatedBuilder(
-                        animation: _pulseController,
-                        builder: (context, _) {
-                          return SizedBox(
-                            width: 180,
-                            height: 140,
-                            child: CustomPaint(
-                              painter: SHLogoPainter(
-                                progress: 1.0,
-                                glowIntensity: _glowAnimation.value,
-                              ),
+            // -----------------------------------------------------------
+            // 3. Erupting Burst Particles on Impact
+            // -----------------------------------------------------------
+            AnimatedBuilder(
+              animation: _impactController,
+              builder: (context, _) {
+                final impactVal = _impactController.value;
+                if (impactVal <= 0.0 || impactVal >= 1.0) {
+                  return const SizedBox.shrink();
+                }
+                return Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: _particles.map((p) {
+                      final dist = p.distance * Curves.easeOutCubic.transform(impactVal);
+                      final dx = math.cos(p.angle) * dist;
+                      final dy = math.sin(p.angle) * dist;
+                      final opacity = (1.0 - impactVal).clamp(0.0, 1.0);
+                      return Transform.translate(
+                        offset: Offset(dx, dy),
+                        child: Opacity(
+                          opacity: opacity,
+                          child: Container(
+                            width: p.size,
+                            height: p.size,
+                            decoration: BoxDecoration(
+                              color: p.color,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: p.color,
+                                  blurRadius: 6,
+                                  spreadRadius: 1,
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 32),
-
-                      // "SOCIAL HUB" Typography with Shimmering Gradient
-                      ShaderMask(
-                        shaderCallback: (bounds) => const LinearGradient(
-                          colors: [
-                            Color(0xFF00F2FE),
-                            Color(0xFFFFFFFF),
-                            Color(0xFFFE2C55),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ).createShader(bounds),
-                        child: const Text(
-                          'S O C I A L   H U B',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 6.0,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Slogan
-                      Text(
-                        'Jelajahi Kreativitas Tanpa Batas',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withOpacity(0.60),
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   ),
-                ),
+                );
+              },
+            ),
+
+            // -----------------------------------------------------------
+            // 4. Center Stage: Dynamic SH Logo & Branding
+            // -----------------------------------------------------------
+            Center(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([
+                  _traceController,
+                  _impactController,
+                  _brandController,
+                  _ambientPulseController,
+                ]),
+                builder: (context, _) {
+                  final glow = 0.90 + 0.30 * _ambientPulseController.value;
+                  return Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Dynamic 3D Chromatic SH Emblem
+                        SizedBox(
+                          width: 220,
+                          height: 150,
+                          child: CustomPaint(
+                            painter: SHLogoPainter(
+                              progress: _traceAnimation.value,
+                              glowIntensity: glow,
+                              traceProgress: _traceAnimation.value,
+                              fillProgress: _fillAnimation.value,
+                              flashIntensity: _flashAnimation.value,
+                              glitchOffset: _glitchOffset,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // "SOCIAL HUB" Title with Dual Chromatic Glitch Shadows
+                        Opacity(
+                          opacity: _brandFade.value,
+                          child: Transform.translate(
+                            offset: Offset(0, _brandSlide.value),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'S O C I A L   H U B',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    letterSpacing: 6.0,
+                                    shadows: [
+                                      Shadow(
+                                        offset: Offset(-2.5 + _glitchOffset.dx * 0.6, -1.2),
+                                        color: const Color(0xFF00F2FE).withOpacity(0.90),
+                                        blurRadius: 10,
+                                      ),
+                                      Shadow(
+                                        offset: Offset(2.8 + _glitchOffset.dx * 0.6, 1.6),
+                                        color: const Color(0xFFFE2C55).withOpacity(0.90),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Glowing Horizontal Neon Line Expanding from Center
+                                Container(
+                                  width: _lineWidth.value,
+                                  height: 2.5,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(2),
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Colors.transparent,
+                                        Color(0xFF00F2FE),
+                                        Colors.white,
+                                        Color(0xFFFE2C55),
+                                        Colors.transparent,
+                                      ],
+                                      stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF00F2FE).withOpacity(0.7),
+                                        blurRadius: 8,
+                                        spreadRadius: 1,
+                                      ),
+                                      BoxShadow(
+                                        color: const Color(0xFFFE2C55).withOpacity(0.7),
+                                        blurRadius: 8,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+
+                                // Slogan
+                                Text(
+                                  'Jelajahi Kreativitas Tanpa Batas',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white.withOpacity(0.70),
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
 
-            // 4. Elegant Minimal Bottom Progress Line
+            // -----------------------------------------------------------
+            // 5. Sleek Minimalist Bottom Progress Indicator & Skip Prompt
+            // -----------------------------------------------------------
             Positioned(
-              left: 36,
-              right: 36,
+              left: 40,
+              right: 40,
               bottom: 48,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -238,7 +454,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                     'Ketuk untuk langsung masuk',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.white.withOpacity(0.35),
+                      color: Colors.white.withOpacity(0.40),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -250,4 +466,18 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
       ),
     );
   }
+}
+
+class _BurstParticle {
+  final double angle;
+  final double distance;
+  final double size;
+  final Color color;
+
+  _BurstParticle({
+    required this.angle,
+    required this.distance,
+    required this.size,
+    required this.color,
+  });
 }
