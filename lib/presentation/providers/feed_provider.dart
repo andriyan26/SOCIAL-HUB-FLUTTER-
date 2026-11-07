@@ -47,9 +47,16 @@ class FeedProvider extends ChangeNotifier {
   }
 
   void updateAuthorAvatar(int userId, String newAvatar) {
+    updateAuthorProfile(userId, avatarUrl: newAvatar);
+  }
+
+  void updateAuthorProfile(int userId, {String? name, String? avatarUrl}) {
     for (int i = 0; i < _posts.length; i++) {
       if (_posts[i].userId == userId) {
-        _posts[i] = _posts[i].copyWith(authorAvatar: newAvatar);
+        _posts[i] = _posts[i].copyWith(
+          authorName: (name != null && name.isNotEmpty) ? name : _posts[i].authorName,
+          authorAvatar: (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : _posts[i].authorAvatar,
+        );
       }
     }
     notifyListeners();

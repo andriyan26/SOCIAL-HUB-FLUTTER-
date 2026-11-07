@@ -7,6 +7,7 @@ import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
+import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 import 'widgets/edit_profile_sheet.dart';
 import 'widgets/post_detail_reel_screen.dart';
 
@@ -463,6 +464,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
+                          user?.name.isNotEmpty == true ? user!.name : 'Andrian Pei',
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
                           '@$displayName',
                           style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                         ),
@@ -635,8 +641,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fit: StackFit.expand,
                         children: [
                           // Video thumbnail image
-                          Image.asset(
-                            post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
+                          SmartMediaImage(
+                            pathOrUrl: post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
                             fit: BoxFit.cover,
                             alignment: Alignment.center,
                           ),

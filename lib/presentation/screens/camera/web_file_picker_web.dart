@@ -6,9 +6,10 @@ void pickMediaFileNative({
 }) {
   final uploadInput = html.FileUploadInputElement()
     ..accept = 'video/*,image/*'
-    ..multiple = false;
+    ..multiple = false
+    ..style.display = 'none';
 
-  uploadInput.click();
+  html.document.body?.children.add(uploadInput);
 
   uploadInput.onChange.listen((e) {
     final files = uploadInput.files;
@@ -23,8 +24,13 @@ void pickMediaFileNative({
 
       final objectUrl = html.Url.createObjectUrl(file);
       onSelected(file.name, objectUrl, isVideo);
+      uploadInput.remove();
+    } else {
+      uploadInput.remove();
     }
   });
+
+  uploadInput.click();
 }
 
 void pickImageFileNative({
@@ -32,9 +38,10 @@ void pickImageFileNative({
 }) {
   final uploadInput = html.FileUploadInputElement()
     ..accept = 'image/*'
-    ..multiple = false;
+    ..multiple = false
+    ..style.display = 'none';
 
-  uploadInput.click();
+  html.document.body?.children.add(uploadInput);
 
   uploadInput.onChange.listen((e) {
     final files = uploadInput.files;
@@ -48,7 +55,12 @@ void pickImageFileNative({
             ? result
             : html.Url.createObjectUrl(file);
         onSelected(file.name, url);
+        uploadInput.remove();
       });
+    } else {
+      uploadInput.remove();
     }
   });
+
+  uploadInput.click();
 }

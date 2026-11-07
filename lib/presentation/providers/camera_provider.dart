@@ -11,7 +11,7 @@ class CameraProvider extends ChangeNotifier {
   int _recordedSeconds = 0;
   Timer? _recordingTimer;
 
-  bool _isFrontCamera = false;
+  bool _isFrontCamera = true;
   bool _isFlashOn = false;
   bool _isGridOn = false;
   int _activeFilterIndex = 0;

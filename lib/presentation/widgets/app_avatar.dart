@@ -42,7 +42,7 @@ class AppAvatar extends StatelessWidget {
     }
 
     // 1. Base64 Data URL (Uploaded from local computer/gallery via FileReader)
-    if (avatarUrl.startsWith('data:image')) {
+    if (avatarUrl.startsWith('data:')) {
       try {
         final base64String = avatarUrl.split(',').last;
         final bytes = base64Decode(base64String);

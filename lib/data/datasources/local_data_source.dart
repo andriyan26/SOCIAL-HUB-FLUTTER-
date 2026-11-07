@@ -64,6 +64,14 @@ class LocalDataSource {
         whereArgs: [id],
       );
     }
+    if (data.containsKey('name')) {
+      await db.update(
+        'posts',
+        {'author_name': data['name']},
+        where: 'user_id = ?',
+        whereArgs: [id],
+      );
+    }
     return updated > 0;
   }
 

@@ -8,6 +8,7 @@ import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
+import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 import 'widgets/rotating_music_disc.dart';
 import 'widgets/comments_sheet.dart';
 import 'widgets/share_sheet.dart';
@@ -438,8 +439,8 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       fit: StackFit.expand,
       children: [
         // A1. Crisp Poster Image (Always rendered underneath so screen is NEVER black)
-        Image.asset(
-          post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
+        SmartMediaImage(
+          pathOrUrl: post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,

@@ -9,6 +9,7 @@ import 'package:social_hub/presentation/providers/camera_provider.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 import 'webcam_preview.dart';
 import 'web_file_picker.dart';
 
@@ -956,11 +957,13 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   Navigator.pop(context);
                   pickMediaFileNative(
                     onSelected: (fileName, objectUrl, isVideo) {
+                      if (!mounted) return;
                       _showPublishDialog(
-                        context,
+                        this.context,
                         camera,
                         isVideo: isVideo,
                         selectedVideoUrl: objectUrl,
+                        selectedThumb: isVideo ? AppAssets.imgAndrianPoster : objectUrl,
                         customFileName: fileName,
                       );
                     },
@@ -1139,7 +1142,12 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(thumb, width: 68, height: 90, fit: BoxFit.cover),
+                  child: SmartMediaImage(
+                    pathOrUrl: thumb,
+                    width: 68,
+                    height: 90,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

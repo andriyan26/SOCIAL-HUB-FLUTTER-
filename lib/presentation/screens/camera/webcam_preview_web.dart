@@ -22,37 +22,63 @@ class _WebcamPreviewWidgetState extends State<WebcamPreviewWidget> {
   html.MediaStream? _mediaStream;
   late String _viewType;
   bool _hasPermission = false;
+  bool _isFactoryRegistered = false;
 
   @override
   void initState() {
     super.initState();
     _viewType = 'webcam-view-${DateTime.now().millisecondsSinceEpoch}';
-    _initWebcam();
+
+    _videoElement = html.VideoElement()
+      ..autoplay = true
+      ..muted = true
+      ..setAttribute('playsinline', 'true')
+      ..style.width = '100%'
+      ..style.height = '100%'
+      ..style.objectFit = 'cover'
+      ..style.transform = (widget.isFrontCamera && widget.isMirrored) ? 'scaleX(-1)' : 'none';
+
+    if (!_isFactoryRegistered) {
+      ui_web.platformViewRegistry.registerViewFactory(
+        _viewType,
+        (int viewId) => _videoElement ?? html.DivElement(),
+      );
+      _isFactoryRegistered = true;
+    }
+
+    _startCameraStream();
   }
 
-  Future<void> _initWebcam() async {
+  Future<void> _startCameraStream() async {
     try {
-      _videoElement = html.VideoElement()
-        ..autoplay = true
-        ..muted = true
-        ..setAttribute('playsinline', 'true')
-        ..style.width = '100%'
-        ..style.height = '100%'
-        ..style.objectFit = 'cover'
-        ..style.transform = widget.isMirrored ? 'scaleX(-1)' : 'none';
+      _mediaStream?.getTracks().forEach((track) => track.stop());
+      _mediaStream = null;
 
       final mediaDevices = html.window.navigator.mediaDevices;
-      if (mediaDevices != null) {
-        final stream = await mediaDevices.getUserMedia({
-          'video': {
-            'facingMode': widget.isFrontCamera ? 'user' : 'environment',
-          },
-          'audio': false,
-        });
+      if (mediaDevices != null && _videoElement != null) {
+        html.MediaStream stream;
+        final targetFacing = widget.isFrontCamera ? 'user' : 'environment';
+
+        try {
+          stream = await mediaDevices.getUserMedia({
+            'video': {
+              'facingMode': targetFacing,
+            },
+            'audio': false,
+          });
+        } catch (_) {
+          // Fallback if specific facingMode is not supported (e.g. laptop webcam)
+          stream = await mediaDevices.getUserMedia({
+            'video': true,
+            'audio': false,
+          });
+        }
 
         _mediaStream = stream;
         _videoElement!.srcObject = stream;
-        _videoElement!.play();
+        _videoElement!.style.transform = (widget.isFrontCamera && widget.isMirrored) ? 'scaleX(-1)' : 'none';
+        await _videoElement!.play();
+
         if (mounted) {
           setState(() {
             _hasPermission = true;
@@ -60,29 +86,23 @@ class _WebcamPreviewWidgetState extends State<WebcamPreviewWidget> {
         }
       }
     } catch (e) {
-      debugPrint('Webcam initialization notice (running fallback viewfinder): $e');
+      debugPrint('Webcam stream notice: $e');
       if (mounted) {
         setState(() {
           _hasPermission = false;
         });
       }
     }
-
-    ui_web.platformViewRegistry.registerViewFactory(
-      _viewType,
-      (int viewId) => _videoElement ?? html.DivElement(),
-    );
   }
 
   @override
   void didUpdateWidget(WebcamPreviewWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.isMirrored != widget.isMirrored) {
-      _videoElement?.style.transform = widget.isMirrored ? 'scaleX(-1)' : 'none';
+    if (oldWidget.isMirrored != widget.isMirrored || oldWidget.isFrontCamera != widget.isFrontCamera) {
+      _videoElement?.style.transform = (widget.isFrontCamera && widget.isMirrored) ? 'scaleX(-1)' : 'none';
     }
     if (oldWidget.isFrontCamera != widget.isFrontCamera) {
-      _mediaStream?.getTracks().forEach((track) => track.stop());
-      _initWebcam();
+      _startCameraStream();
     }
   }
 

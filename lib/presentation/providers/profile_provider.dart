@@ -34,9 +34,16 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   void updateAuthorAvatar(int userId, String newAvatar) {
+    updateAuthorProfile(userId, avatarUrl: newAvatar);
+  }
+
+  void updateAuthorProfile(int userId, {String? name, String? avatarUrl}) {
     for (int i = 0; i < _userPosts.length; i++) {
       if (_userPosts[i].userId == userId) {
-        _userPosts[i] = _userPosts[i].copyWith(authorAvatar: newAvatar);
+        _userPosts[i] = _userPosts[i].copyWith(
+          authorName: (name != null && name.isNotEmpty) ? name : _userPosts[i].authorName,
+          authorAvatar: (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : _userPosts[i].authorAvatar,
+        );
       }
     }
     notifyListeners();

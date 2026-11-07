@@ -100,14 +100,15 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     );
 
     if (mounted) {
+      final finalName = name.isNotEmpty ? name : 'Andrian Pei';
       // Synchronize across all active providers so Beranda, Rotating Disk, & Profile update immediately
-      context.read<FeedProvider>().updateAuthorAvatar(userId, _selectedAvatar);
-      context.read<ProfileProvider>().updateAuthorAvatar(userId, _selectedAvatar);
+      context.read<FeedProvider>().updateAuthorProfile(userId, name: finalName, avatarUrl: _selectedAvatar);
+      context.read<ProfileProvider>().updateAuthorProfile(userId, name: finalName, avatarUrl: _selectedAvatar);
 
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🎉 Foto Profil berhasil disimpan dan sinkron ke Beranda & Profil!'),
+          content: Text('🎉 Profil dan foto berhasil diperbarui dan tersinkron ke semua halaman!'),
           backgroundColor: Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
         ),
