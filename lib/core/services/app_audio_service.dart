@@ -1,51 +1,44 @@
-import 'package:flutter/foundation.dart';
-import 'audio_service_stub.dart'
-    if (dart.library.html) 'audio_service_web.dart';
+import 'package:flutter/services.dart';
 
 class AppAudioService {
   static final AppAudioService instance = AppAudioService._internal();
   AppAudioService._internal();
 
-  final _platformAudio = PlatformAudioHelper();
   bool _isMuted = false;
-
   bool get isMuted => _isMuted;
 
   void toggleMute() {
     _isMuted = !_isMuted;
-    if (_isMuted) {
-      stopMusic();
-    } else {
-      startMusic();
+    if (!_isMuted) {
+      playChimeSound();
     }
   }
 
   void playShutterSound() {
     if (_isMuted) return;
-    _platformAudio.playShutter();
+    SystemSound.play(SystemSoundType.click);
   }
 
   void playPopSound() {
     if (_isMuted) return;
-    _platformAudio.playPop();
+    SystemSound.play(SystemSoundType.click);
   }
 
   void playChimeSound() {
     if (_isMuted) return;
-    _platformAudio.playChime();
+    SystemSound.play(SystemSoundType.click);
   }
 
   void playTimerBeep(int second) {
     if (_isMuted) return;
-    _platformAudio.playBeep(second);
+    SystemSound.play(SystemSoundType.click);
   }
 
   void startMusic() {
-    if (_isMuted) return;
-    _platformAudio.startAmbientMusic();
+    // Sound active
   }
 
   void stopMusic() {
-    _platformAudio.stopAmbientMusic();
+    // Sound stopped
   }
 }

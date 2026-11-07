@@ -208,7 +208,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   ..setEntry(3, 2, 0.001)
                   ..rotateY(angle),
                 child: ColorFiltered(
-                  colorFilter: ColorFilter.matrix(activeFilter['matrix']),
+                  colorFilter: ColorFilter.matrix(activeFilter['matrix'] as List<double>),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -555,10 +555,10 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                         margin: const EdgeInsets.symmetric(horizontal: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isSelected ? f['color'].withOpacity(0.3) : Colors.white10,
+                          color: isSelected ? (f['color'] as Color).withOpacity(0.3) : Colors.white10,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? f['color'] : Colors.white24,
+                            color: isSelected ? (f['color'] as Color) : Colors.white24,
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -568,7 +568,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                               width: 14,
                               height: 14,
                               decoration: BoxDecoration(
-                                color: f['color'],
+                                color: f['color'] as Color,
                                 shape: BoxShape.circle,
                               ),
                             ),

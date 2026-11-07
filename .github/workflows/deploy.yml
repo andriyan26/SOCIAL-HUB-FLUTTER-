@@ -35,7 +35,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Flutter Web
-        run: flutter build web --release --base-href "/SOCIAL-HUB-FLUTTER-/" --pwa-strategy=none
+        run: flutter build web --release --base-href "/SOCIAL-HUB-FLUTTER-/" --pwa-strategy=none --verbose
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
