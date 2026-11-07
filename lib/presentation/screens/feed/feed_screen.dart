@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/utils/formatters.dart';
@@ -24,6 +25,10 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   final Set<int> _followedAuthors = {};
   late AnimationController _soundWaveController;
 
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
+  bool _isPlaying = true;
+
   @override
   void initState() {
     super.initState();
@@ -36,12 +41,46 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     Future.microtask(() {
       context.read<FeedProvider>().loadFeed();
     });
+
+    _initVideoPlayer();
+  }
+
+  Future<void> _initVideoPlayer() async {
+    try {
+      _videoController = VideoPlayerController.asset(AppAssets.videoAndrian);
+      await _videoController!.initialize();
+      _videoController!.setLooping(true);
+      _videoController!.setVolume(1.0);
+      await _videoController!.play();
+      if (mounted) {
+        setState(() {
+          _isVideoInitialized = true;
+          _isPlaying = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Feed video player initialization note: $e');
+    }
+  }
+
+  void _togglePlayPause() {
+    if (_videoController == null || !_isVideoInitialized) return;
+    setState(() {
+      if (_videoController!.value.isPlaying) {
+        _videoController!.pause();
+        _isPlaying = false;
+      } else {
+        _videoController!.play();
+        _isPlaying = true;
+      }
+    });
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _soundWaveController.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
 
@@ -106,7 +145,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     image: const DecorationImage(
-                      image: AssetImage(AppAssets.imgFeed),
+                      image: AssetImage(AppAssets.imgAndrianPoster),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -136,7 +175,10 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.play_arrow, color: Colors.white),
                     label: const Text('Gunakan Suara Ini', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                    ),
                     onPressed: () {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,12 +209,30 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       );
     }
 
-    // Default rich fallback posts if empty
     final List<PostEntity> displayPosts = posts.isNotEmpty
         ? posts
         : [
             PostEntity(
               id: 1,
+              userId: 1,
+              authorName: 'Andrian Pei',
+              authorUsername: 'andrianpei',
+              authorAvatar: AppAssets.imgProfile,
+              videoUrl: AppAssets.videoAndrian,
+              caption: 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik! Terima kasih untuk semua dukungannya ✨ #wisuda #unpam #informatika #fyp',
+              musicTitle: '♫ Berisi: Sound Wisuda Bangga (Original) - andrianpei',
+              likesCount: 844300,
+              commentsCount: 3322,
+              sharesCount: 12300,
+              bookmarksCount: 17100,
+              isLiked: false,
+              isBookmarked: false,
+              viewCount: 1520000,
+              thumbnailPath: AppAssets.imgAndrianPoster,
+              createdAt: 'Hari ini',
+            ),
+            PostEntity(
+              id: 2,
               userId: 2,
               authorName: 'Aurelie Hermansyah',
               authorUsername: 'aurelie.hermansyah',
@@ -189,25 +249,6 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               viewCount: 1520000,
               thumbnailPath: AppAssets.imgFeed,
               createdAt: 'Hari ini',
-            ),
-            PostEntity(
-              id: 2,
-              userId: 1,
-              authorName: 'Andrian Pei',
-              authorUsername: 'andrianpei',
-              authorAvatar: AppAssets.imgProfile,
-              videoUrl: AppAssets.videoLogin,
-              caption: 'Behind the scenes shooting konten baru bareng tim Social Hub! 🔥 #creator #fyp',
-              musicTitle: '♫ Sound Asli - andrianpei',
-              likesCount: 128500,
-              commentsCount: 1480,
-              sharesCount: 4100,
-              bookmarksCount: 9200,
-              isLiked: false,
-              isBookmarked: false,
-              viewCount: 430000,
-              thumbnailPath: AppAssets.imgProfile,
-              createdAt: 'Kemarin',
             ),
             PostEntity(
               id: 3,
@@ -242,7 +283,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
             itemCount: displayPosts.length,
             itemBuilder: (context, index) {
               final post = displayPosts[index];
-              return _buildFeedItem(post, feedProvider);
+              return _buildFeedItem(post, feedProvider, isFirstItem: index == 0);
             },
           ),
 
@@ -299,7 +340,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(width: 8),
 
-                  // Middle Tabs
+                  // Middle Tabs (Komunitas, Depok, Mengikuti, Saran)
                   Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -318,6 +359,9 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                   GestureDetector(
                     onTap: () {
                       AppAudioService.instance.toggleMute();
+                      if (_videoController != null && _isVideoInitialized) {
+                        _videoController!.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
+                      }
                       setState(() {});
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -380,7 +424,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildFeedItem(PostEntity post, FeedProvider feedProvider) {
+  Widget _buildFeedItem(PostEntity post, FeedProvider feedProvider, {bool isFirstItem = false}) {
     final currentPostInState = feedProvider.posts.firstWhere(
       (p) => p.id == post.id,
       orElse: () => post,
@@ -388,18 +432,45 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     final isFollowing = _followedAuthors.contains(post.id);
 
     return GestureDetector(
+      onTap: isFirstItem ? _togglePlayPause : null,
       onDoubleTapDown: (details) => _onDoubleTap(details, currentPostInState),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // A. Full Screen Image Background - ALWAYS Crisp & Full Viewport
+          // A1. Crisp Poster Image (Always rendered underneath so screen is NEVER black)
           Image.asset(
-            post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgFeed,
+            post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
             alignment: Alignment.center,
           ),
+
+          // A2. Video Player for first item (Andrian's Video)
+          if (isFirstItem && _isVideoInitialized && _videoController != null)
+            SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoController!.value.size.width,
+                  height: _videoController!.value.size.height,
+                  child: VideoPlayer(_videoController!),
+                ),
+              ),
+            ),
+
+          // Pause Indicator when video is paused
+          if (isFirstItem && !_isPlaying)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow, color: Colors.white, size: 48),
+              ),
+            ),
 
           // B. High-Fidelity Readability Gradients (Top & Bottom)
           Positioned.fill(
@@ -618,17 +689,17 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.white24, width: 0.6),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.search, size: 14, color: Colors.white70),
-                        SizedBox(width: 6),
+                        const Icon(Icons.search, size: 14, color: Colors.white70),
+                        const SizedBox(width: 6),
                         Text(
-                          'Pencarian · aurel nangis liat ameena',
-                          style: TextStyle(fontSize: 11.5, color: Colors.white),
+                          isFirstItem ? 'Pencarian · andrian wisudawan terbaik' : 'Pencarian · aurel nangis liat ameena',
+                          style: const TextStyle(fontSize: 11.5, color: Colors.white),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.chevron_right, size: 14, color: Colors.white70),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right, size: 14, color: Colors.white70),
                       ],
                     ),
                   ),
@@ -789,7 +860,10 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               width: double.infinity,
               height: 44,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                ),
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Jelajahi Siaran LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
