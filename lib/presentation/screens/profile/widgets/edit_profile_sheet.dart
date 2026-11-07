@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../providers/auth_provider.dart';
-import '../../../widgets/custom_button.dart';
-import '../../../widgets/custom_text_field.dart';
+import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
+import 'package:social_hub/presentation/widgets/custom_button.dart';
+import 'package:social_hub/presentation/widgets/custom_text_field.dart';
 
 class EditProfileSheet extends StatefulWidget {
   const EditProfileSheet({super.key});

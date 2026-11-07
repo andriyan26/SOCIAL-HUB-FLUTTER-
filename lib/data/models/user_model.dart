@@ -1,4 +1,4 @@
-import '../../domain/entities/user_entity.dart';
+import 'package:social_hub/domain/entities/user_entity.dart';
 
 class UserModel extends UserEntity {
   UserModel({

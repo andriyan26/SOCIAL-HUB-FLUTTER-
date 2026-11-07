@@ -1,6 +1,6 @@
-import '../../domain/entities/post_entity.dart';
-import '../../domain/repositories/post_repository.dart';
-import '../datasources/local_data_source.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
+import 'package:social_hub/domain/repositories/post_repository.dart';
+import 'package:social_hub/data/datasources/local_data_source.dart';
 
 class PostRepositoryImpl implements PostRepository {
   final LocalDataSource localDataSource;

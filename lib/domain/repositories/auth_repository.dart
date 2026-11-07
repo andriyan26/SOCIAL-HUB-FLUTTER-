@@ -1,4 +1,4 @@
-import '../entities/user_entity.dart';
+import 'package:social_hub/domain/entities/user_entity.dart';
 
 abstract class AuthRepository {
   Future<UserEntity?> login(String usernameOrEmail, String password);

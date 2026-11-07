@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/notification_entity.dart';
-import '../../domain/repositories/notification_repository.dart';
+import 'package:social_hub/domain/entities/notification_entity.dart';
+import 'package:social_hub/domain/repositories/notification_repository.dart';
 
 class InboxProvider extends ChangeNotifier {
   final NotificationRepository notificationRepository;

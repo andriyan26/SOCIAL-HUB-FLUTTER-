@@ -1,4 +1,4 @@
-import '../../domain/entities/notification_entity.dart';
+import 'package:social_hub/domain/entities/notification_entity.dart';
 
 class NotificationModel extends NotificationEntity {
   NotificationModel({

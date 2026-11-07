@@ -1,8 +1,8 @@
-import '../../core/database/app_database.dart';
-import '../models/user_model.dart';
-import '../models/post_model.dart';
-import '../models/notification_model.dart';
-import '../models/friend_model.dart';
+import 'package:social_hub/core/database/app_database.dart';
+import 'package:social_hub/data/models/user_model.dart';
+import 'package:social_hub/data/models/post_model.dart';
+import 'package:social_hub/data/models/notification_model.dart';
+import 'package:social_hub/data/models/friend_model.dart';
 
 class LocalDataSource {
   final AppDatabase db = AppDatabase.instance;

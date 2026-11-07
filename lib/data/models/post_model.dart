@@ -1,4 +1,4 @@
-import '../../domain/entities/post_entity.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
 
 class PostModel extends PostEntity {
   PostModel({

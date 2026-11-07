@@ -1,4 +1,4 @@
-import '../entities/friend_entity.dart';
+import 'package:social_hub/domain/entities/friend_entity.dart';
 
 abstract class FriendRepository {
   Future<List<FriendEntity>> getSuggestedFriends();

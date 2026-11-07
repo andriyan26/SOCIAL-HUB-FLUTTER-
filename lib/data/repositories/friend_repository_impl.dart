@@ -1,6 +1,6 @@
-import '../../domain/entities/friend_entity.dart';
-import '../../domain/repositories/friend_repository.dart';
-import '../datasources/local_data_source.dart';
+import 'package:social_hub/domain/entities/friend_entity.dart';
+import 'package:social_hub/domain/repositories/friend_repository.dart';
+import 'package:social_hub/data/datasources/local_data_source.dart';
 
 class FriendRepositoryImpl implements FriendRepository {
   final LocalDataSource localDataSource;

@@ -1,8 +1,8 @@
-import '../../core/services/session_service.dart';
-import '../../domain/entities/user_entity.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../datasources/local_data_source.dart';
-import '../models/user_model.dart';
+import 'package:social_hub/core/services/session_service.dart';
+import 'package:social_hub/domain/entities/user_entity.dart';
+import 'package:social_hub/domain/repositories/auth_repository.dart';
+import 'package:social_hub/data/datasources/local_data_source.dart';
+import 'package:social_hub/data/models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final LocalDataSource localDataSource;

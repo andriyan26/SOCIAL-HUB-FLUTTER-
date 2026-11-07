@@ -1,4 +1,4 @@
-import '../entities/notification_entity.dart';
+import 'package:social_hub/domain/entities/notification_entity.dart';
 
 abstract class NotificationRepository {
   Future<List<NotificationEntity>> getNotifications(int userId);

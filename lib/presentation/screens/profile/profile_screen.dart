@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_assets.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/profile_provider.dart';
-import '../landing/landing_screen.dart';
+import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/core/constants/app_assets.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
+import 'package:social_hub/presentation/providers/profile_provider.dart';
+import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
 import 'widgets/edit_profile_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {

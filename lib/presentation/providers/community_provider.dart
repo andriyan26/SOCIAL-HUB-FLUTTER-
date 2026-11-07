@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/friend_entity.dart';
-import '../../domain/repositories/friend_repository.dart';
+import 'package:social_hub/domain/entities/friend_entity.dart';
+import 'package:social_hub/domain/repositories/friend_repository.dart';
 
 class CommunityProvider extends ChangeNotifier {
   final FriendRepository friendRepository;

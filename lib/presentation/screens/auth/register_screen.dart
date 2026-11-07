@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_colors.dart';
-import '../providers/auth_provider.dart';
-import '../widgets/custom_button.dart';
-import '../widgets/custom_text_field.dart';
-import '../main/main_screen.dart';
+import 'package:social_hub/presentation/core/constants/app_colors.dart';
+import 'package:social_hub/presentation/screens/providers/auth_provider.dart';
+import 'package:social_hub/presentation/screens/widgets/custom_button.dart';
+import 'package:social_hub/presentation/screens/widgets/custom_text_field.dart';
+import 'package:social_hub/presentation/screens/main/main_screen.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {

@@ -1,4 +1,4 @@
-import '../entities/post_entity.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
 
 abstract class PostRepository {
   Future<List<PostEntity>> getFeedPosts();

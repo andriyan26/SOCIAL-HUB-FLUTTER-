@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_assets.dart';
-import '../../../core/utils/formatters.dart';
-import '../../providers/feed_provider.dart';
+import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/core/constants/app_assets.dart';
+import 'package:social_hub/core/utils/formatters.dart';
+import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'widgets/rotating_music_disc.dart';
 import 'widgets/comments_sheet.dart';
 import 'widgets/share_sheet.dart';

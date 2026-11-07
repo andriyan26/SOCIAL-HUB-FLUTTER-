@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/user_entity.dart';
-import '../../domain/repositories/auth_repository.dart';
+import 'package:social_hub/domain/entities/user_entity.dart';
+import 'package:social_hub/domain/repositories/auth_repository.dart';
 
 enum AuthStatus { initial, authenticating, authenticated, unauthenticated, error }
 

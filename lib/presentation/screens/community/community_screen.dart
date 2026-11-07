@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_assets.dart';
-import '../../providers/community_provider.dart';
+import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/core/constants/app_assets.dart';
+import 'package:social_hub/presentation/providers/community_provider.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});

@@ -1,6 +1,6 @@
-import '../../domain/entities/notification_entity.dart';
-import '../../domain/repositories/notification_repository.dart';
-import '../datasources/local_data_source.dart';
+import 'package:social_hub/domain/entities/notification_entity.dart';
+import 'package:social_hub/domain/repositories/notification_repository.dart';
+import 'package:social_hub/data/datasources/local_data_source.dart';
 
 class NotificationRepositoryImpl implements NotificationRepository {
   final LocalDataSource localDataSource;

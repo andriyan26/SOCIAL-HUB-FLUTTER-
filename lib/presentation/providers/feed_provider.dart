@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/post_entity.dart';
-import '../../domain/repositories/post_repository.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
+import 'package:social_hub/domain/repositories/post_repository.dart';
 
 class FeedProvider extends ChangeNotifier {
   final PostRepository postRepository;

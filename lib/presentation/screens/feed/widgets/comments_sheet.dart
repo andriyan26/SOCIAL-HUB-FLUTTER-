@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/formatters.dart';
-import '../../../providers/feed_provider.dart';
-import '../../../providers/auth_provider.dart';
+import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/core/utils/formatters.dart';
+import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
 
 class CommentsSheet extends StatefulWidget {
   final int postId;
