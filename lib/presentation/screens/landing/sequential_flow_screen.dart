@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
+import 'package:social_hub/presentation/providers/ui_frame_provider.dart';
 import 'package:social_hub/presentation/screens/main/main_screen.dart';
 
 enum FlowStage { intro, login, beranda }
@@ -30,6 +31,7 @@ class _SequentialFlowScreenState extends State<SequentialFlowScreen> with Ticker
   double _loginProgress = 0.0;
   Timer? _ticker;
   Timer? _safetyFallbackTimer;
+  int _lastReplayKey = 0;
 
   @override
   void initState() {
@@ -145,6 +147,25 @@ class _SequentialFlowScreenState extends State<SequentialFlowScreen> with Ticker
     }
   }
 
+  void _restartSequence() {
+    _safetyFallbackTimer?.cancel();
+    _loginController?.pause();
+    _introController?.seekTo(Duration.zero);
+    _introController?.play();
+
+    _safetyFallbackTimer = Timer(const Duration(seconds: 12), () {
+      if (mounted && _currentStage == FlowStage.intro) {
+        _transitionToLoginStage();
+      }
+    });
+
+    setState(() {
+      _currentStage = FlowStage.intro;
+      _introProgress = 0.0;
+      _loginProgress = 0.0;
+    });
+  }
+
   @override
   void dispose() {
     _safetyFallbackTimer?.cancel();
@@ -156,6 +177,15 @@ class _SequentialFlowScreenState extends State<SequentialFlowScreen> with Ticker
 
   @override
   Widget build(BuildContext context) {
+    // Listen for top bar "Ulangi Animasi" clicks
+    final replayKey = context.watch<UiFrameProvider>().replayKey;
+    if (_lastReplayKey != replayKey) {
+      _lastReplayKey = replayKey;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _restartSequence();
+      });
+    }
+
     // Stage 3: Halaman Beranda Muncul!
     if (_currentStage == FlowStage.beranda) {
       return const MainScreen();
