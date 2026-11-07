@@ -17,7 +17,7 @@ import 'package:social_hub/presentation/providers/inbox_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 
 import 'package:social_hub/presentation/widgets/iphone_frame.dart';
-import 'package:social_hub/presentation/screens/landing/intro_animation_screen.dart';
+import 'package:social_hub/presentation/screens/landing/sequential_flow_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,16 +71,16 @@ class SocialHubApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Social Hub',
+      title: 'Social Hub (iPhone 13)',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       builder: (context, child) {
-        // Wrap with realistic iPhone 13 frame for desktop/browser preview
+        // Render inside realistic Apple iPhone 13 chassis for web/desktop browser preview
         return IPhone13Frame(
           child: child ?? const SizedBox.shrink(),
         );
       },
-      home: const IntroAnimationScreen(),
+      home: const SequentialFlowScreen(),
     );
   }
 }

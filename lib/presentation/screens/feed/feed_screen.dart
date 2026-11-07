@@ -27,23 +27,6 @@ class _FeedScreenState extends State<FeedScreen> {
     Future.microtask(() {
       context.read<FeedProvider>().loadFeed();
     });
-    _initVideo();
-  }
-
-  Future<void> _initVideo() async {
-    try {
-      _videoController = VideoPlayerController.asset(AppAssets.videoLanding);
-      await _videoController!.initialize();
-      _videoController!.setLooping(true);
-      await _videoController!.play();
-      if (mounted) {
-        setState(() {
-          _isVideoReady = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Feed video fallback: $e');
-    }
   }
 
   @override
