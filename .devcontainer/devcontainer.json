@@ -1,0 +1,31 @@
+{
+  "name": "Flutter Codespace - Social Hub",
+  "image": "ghcr.io/cirruslabs/flutter:stable",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Dart-Code.flutter",
+        "Dart-Code.dart-code"
+      ],
+      "settings": {
+        "dart.flutterSdkPath": "/sdks/flutter",
+        "files.watcherExclude": {
+          "**/.git/objects/**": true,
+          "**/.git/subtree-cache/**": true,
+          "**/node_modules/**": true,
+          "**/.dart_tool/**": true,
+          "**/build/**": true
+        }
+      }
+    }
+  },
+  "forwardPorts": [8080, 5000],
+  "portsAttributes": {
+    "8080": {
+      "label": "Flutter Web App",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "flutter doctor && flutter pub get",
+  "remoteUser": "root"
+}
