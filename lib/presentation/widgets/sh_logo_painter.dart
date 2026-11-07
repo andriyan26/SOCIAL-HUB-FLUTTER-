@@ -1,13 +1,14 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Custom Painter that precisely recreates the 3D Neon "NS" (NoShot) emblem
-/// from the concept video with dual-color electric cyan & hot magenta glows.
-class NSLogoPainter extends CustomPainter {
+/// 3D Neon "SH" (Social Hub) Emblem Painter
+/// Precisely matching the aesthetic of the concept video with dual-color
+/// Electric Cyan (#00F2FE) & Hot Neon Magenta (#FE2C55) glows.
+class SHLogoPainter extends CustomPainter {
   final double progress;
   final double glowIntensity;
 
-  NSLogoPainter({
+  SHLogoPainter({
     required this.progress,
     required this.glowIntensity,
   });
@@ -17,102 +18,102 @@ class NSLogoPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Center offset
     final cx = w * 0.5;
     final cy = h * 0.5;
 
-    // Outer Glow / Blur Paint (Magenta)
+    // Glowing Neon Paints
     final magentaGlow = Paint()
-      ..color = const Color(0xFFFE2C55).withOpacity(0.55 * glowIntensity)
+      ..color = const Color(0xFFFE2C55).withOpacity(0.60 * glowIntensity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 14 * glowIntensity
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 16 * glowIntensity)
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    // Outer Glow / Blur Paint (Cyan)
     final cyanGlow = Paint()
-      ..color = const Color(0xFF00F2FE).withOpacity(0.55 * glowIntensity)
+      ..color = const Color(0xFF00F2FE).withOpacity(0.60 * glowIntensity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 14 * glowIntensity
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 16 * glowIntensity)
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    // Core Solid Strokes
     final magentaCore = Paint()
       ..color = const Color(0xFFFF2A6D)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0
+      ..strokeWidth = 5.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     final cyanCore = Paint()
-      ..color = const Color(0xFF05D9E8)
+      ..color = const Color(0xFF00F2FE)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0
+      ..strokeWidth = 5.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     final whiteCore = Paint()
-      ..color = Colors.white.withOpacity(0.9)
+      ..color = Colors.white.withOpacity(0.95)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
+      ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    // Draw Letter "N"
-    // Coordinates relative to center
-    final nLeft = cx - w * 0.38;
-    final nRight = cx - w * 0.04;
-    final nTop = cy - h * 0.35;
-    final nBottom = cy + h * 0.35;
-
-    final pathN = Path()
-      ..moveTo(nLeft, nBottom)
-      ..lineTo(nLeft, nTop)
-      ..lineTo(nRight, nBottom)
-      ..lineTo(nRight, nTop);
-
-    // Draw Letter "S" with upward arrow tail
-    final sLeft = cx + w * 0.02;
-    final sRight = cx + w * 0.38;
+    // --- Letter "S" (Left) ---
+    final sLeft = cx - w * 0.42;
+    final sRight = cx - w * 0.06;
     final sTop = cy - h * 0.35;
     final sMidY = cy;
     final sBottom = cy + h * 0.35;
 
     final pathS = Path()
-      // Top curve of S
       ..moveTo(sRight, sTop + h * 0.12)
       ..cubicTo(sRight, sTop, sLeft + w * 0.08, sTop, sLeft + w * 0.08, sTop + h * 0.16)
       ..cubicTo(sLeft + w * 0.08, sMidY, sRight, sMidY - h * 0.06, sRight, sMidY + h * 0.14)
       ..cubicTo(sRight, sBottom, sLeft, sBottom, sLeft, sBottom - h * 0.14)
-      // Arrow styling at the end of S pointing up-right
-      ..lineTo(sLeft + w * 0.10, sBottom - h * 0.22);
+      ..lineTo(sLeft + w * 0.12, sBottom - h * 0.22); // arrow tail
 
-    // Shadow shift for 3D effect: Magenta shifted slightly right/down, Cyan shifted left/up
+    // --- Letter "H" (Right) ---
+    final hLeft = cx + w * 0.06;
+    final hRight = cx + w * 0.42;
+    final hTop = cy - h * 0.35;
+    final hBottom = cy + h * 0.35;
+
+    final pathH = Path()
+      // Left vertical pillar
+      ..moveTo(hLeft, hBottom)
+      ..lineTo(hLeft, hTop)
+      // Crossbar
+      ..moveTo(hLeft, cy)
+      ..lineTo(hRight, cy)
+      // Right vertical pillar
+      ..moveTo(hRight, hBottom)
+      ..lineTo(hRight, hTop);
+
+    // 1. Magenta 3D Shadow Layer (Shifted right & down by +3px)
     canvas.save();
-    canvas.translate(3.0, 3.0);
-    canvas.drawPath(pathN, magentaGlow);
+    canvas.translate(3.5, 3.5);
     canvas.drawPath(pathS, magentaGlow);
-    canvas.drawPath(pathN, magentaCore);
+    canvas.drawPath(pathH, magentaGlow);
     canvas.drawPath(pathS, magentaCore);
+    canvas.drawPath(pathH, magentaCore);
     canvas.restore();
 
+    // 2. Cyan Primary Glow & Core (Shifted left & up by -2px)
     canvas.save();
     canvas.translate(-2.0, -2.0);
-    canvas.drawPath(pathN, cyanGlow);
     canvas.drawPath(pathS, cyanGlow);
-    canvas.drawPath(pathN, cyanCore);
+    canvas.drawPath(pathH, cyanGlow);
     canvas.drawPath(pathS, cyanCore);
+    canvas.drawPath(pathH, cyanCore);
     canvas.restore();
 
-    // White electric highlight in the core
-    canvas.drawPath(pathN, whiteCore);
+    // 3. Crisp White Electric Center Wire
     canvas.drawPath(pathS, whiteCore);
+    canvas.drawPath(pathH, whiteCore);
 
-    // Arrowhead on the S tail
-    final arrowTip = Offset(sLeft + w * 0.10, sBottom - h * 0.22);
+    // 4. Cyan Arrowhead on the tail of "S"
+    final arrowTip = Offset(sLeft + w * 0.12, sBottom - h * 0.22);
     final arrowPaint = Paint()
       ..color = const Color(0xFF00F2FE)
       ..style = PaintingStyle.fill;
@@ -125,8 +126,7 @@ class NSLogoPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant NSLogoPainter oldDelegate) {
+  bool shouldRepaint(covariant SHLogoPainter oldDelegate) {
     return oldDelegate.progress != progress || oldDelegate.glowIntensity != glowIntensity;
   }
 }
-

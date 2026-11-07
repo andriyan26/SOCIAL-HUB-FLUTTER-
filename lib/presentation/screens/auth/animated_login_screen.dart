@@ -1,9 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
-import 'package:social_hub/presentation/widgets/ns_logo_painter.dart';
+import 'package:social_hub/presentation/widgets/sh_logo_painter.dart';
 
 class AnimatedLoginScreen extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -21,52 +20,56 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
   final _usernameController = TextEditingController(text: 'andrianpei');
   final _passwordController = TextEditingController(text: 'password123');
   bool _obscurePassword = true;
+  bool _rememberMe = true;
 
-  // Animation States: idle -> loading -> success
-  String _btnState = 'idle'; // 'idle', 'loading', 'success'
+  // Animation States: 'idle' -> 'logging_in' -> 'success'
+  String _loginState = 'idle';
 
-  late AnimationController _fadeController;
-  late AnimationController _waveController;
-  late Animation<double> _slideAnimation;
+  late AnimationController _entranceController;
+  late AnimationController _pulseController;
   late Animation<double> _fadeAnimation;
+  late Animation<double> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    _fadeController = AnimationController(
+    _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
 
-    _waveController = AnimationController(
+    _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
 
-    _slideAnimation = Tween<double>(begin: 40.0, end: 0.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
-    );
-
     _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
+      parent: _entranceController,
       curve: Curves.easeIn,
     );
 
-    _fadeController.forward();
+    _slideAnimation = Tween<double>(begin: 30.0, end: 0.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _entranceController.forward();
   }
 
   Future<void> _handleLogin() async {
-    if (_btnState != 'idle') return;
+    if (_loginState != 'idle') return;
 
     setState(() {
-      _btnState = 'loading';
+      _loginState = 'logging_in';
     });
 
-    final authProvider = context.read<AuthProvider>();
+    final auth = context.read<AuthProvider>();
 
-    // Authenticate with local SQLite database
-    final success = await authProvider.login(
+    // 1. Minimum animation delay to show the "Logging you in..." experience from the concept video
+    await Future.delayed(const Duration(milliseconds: 1400));
+
+    // 2. Authenticate with local SQLite database
+    final success = await auth.login(
       _usernameController.text.trim(),
       _passwordController.text,
     );
@@ -75,16 +78,15 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
 
     if (success) {
       setState(() {
-        _btnState = 'success';
+        _loginState = 'success';
       });
-
-      await Future.delayed(const Duration(milliseconds: 650));
+      await Future.delayed(const Duration(milliseconds: 700));
       if (mounted) {
         widget.onLoginSuccess();
       }
     } else {
       setState(() {
-        _btnState = 'idle';
+        _loginState = 'idle';
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login gagal. Periksa username dan password.')),
@@ -96,428 +98,470 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
-    _fadeController.dispose();
-    _waveController.dispose();
+    _entranceController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0C14),
+      backgroundColor: const Color(0xFF07080D),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Fluid Gradient Wave Header
+          // 1. Ambient Background Glows
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 280,
-            child: AnimatedBuilder(
-              animation: _waveController,
-              builder: (context, _) {
-                return CustomPaint(
-                  painter: _LoginWavePainter(animationValue: _waveController.value),
-                );
-              },
+            top: -80,
+            right: -80,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFE2C55).withOpacity(0.18),
+                    Colors.transparent,
+                  ],
+                  radius: 0.7,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 60,
+            left: -60,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF00F2FE).withOpacity(0.12),
+                    Colors.transparent,
+                  ],
+                  radius: 0.7,
+                ),
+              ),
             ),
           ),
 
-          // 2. Top Stage Tag & Quick Skip
-          Positioned(
-            top: 50,
-            left: 18,
-            right: 18,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFE2C55).withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFE2C55), width: 0.8),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+          // 2. Main Login Form View
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: AnimatedBuilder(
+                animation: _entranceController,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, _slideAnimation.value),
+                    child: child,
+                  );
+                },
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.lock_open_rounded, color: Color(0xFFFE2C55), size: 12),
-                      SizedBox(width: 5),
-                      Text(
-                        '2. ANIMASI LOGIN (NATIVE)',
-                        style: TextStyle(
-                          color: Color(0xFFFE2C55),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: _handleLogin,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white24, width: 0.8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Ke Beranda ➔',
-                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+                      const SizedBox(height: 10),
 
-          // 3. Main Form Content (Smooth Entrance)
-          AnimatedBuilder(
-            animation: _fadeController,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(0, _slideAnimation.value),
-                child: Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: child,
-                ),
-              );
-            },
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 110),
-
-                  // Mini Floating NS Logo with Glow
-                  Container(
-                    width: 76,
-                    height: 76,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF131622),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFFE2C55).withOpacity(0.5), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFE2C55).withOpacity(0.35),
-                          blurRadius: 18,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: CustomPaint(
-                      painter: NSLogoPainter(
-                        progress: 1.0,
-                        glowIntensity: 0.9,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  const Text(
-                    'Selamat Datang di Social Hub',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Sesi Akun Terkoneksi dengan Database SQLite',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.65),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Glassmorphism Card
-                  Container(
-                    padding: const EdgeInsets.all(22),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF141724).withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white12, width: 0.8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.4),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Username',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Username Field
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1D2132),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF2E344E)),
-                          ),
-                          child: TextField(
-                            controller: _usernameController,
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
-                            decoration: const InputDecoration(
-                              icon: Icon(Icons.person_outline_rounded, color: Color(0xFF00F2FE), size: 19),
-                              hintText: 'Masukkan username',
-                              hintStyle: TextStyle(color: Colors.white30, fontSize: 13),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-
-                        const Text(
-                          'Kata Sandi',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Password Field
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1D2132),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF2E344E)),
-                          ),
-                          child: TextField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
-                            decoration: InputDecoration(
-                              icon: const Icon(Icons.lock_outline_rounded, color: Color(0xFFFE2C55), size: 19),
-                              hintText: 'Masukkan kata sandi',
-                              hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
-                              border: InputBorder.none,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                  color: Colors.white38,
-                                  size: 18,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
+                      // Header: Mini SH Glowing Logo
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 44,
+                            padding: const EdgeInsets.all(4),
+                            child: CustomPaint(
+                              painter: SHLogoPainter(
+                                progress: 1.0,
+                                glowIntensity: 0.85,
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Remember Me & Forgot Password
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF161926),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: const Row(
                               children: [
-                                Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 15),
+                                Icon(Icons.circle, color: Color(0xFF10B981), size: 7),
                                 SizedBox(width: 6),
                                 Text(
-                                  'Ingat Akun Saya',
-                                  style: TextStyle(color: Colors.white60, fontSize: 11.5),
+                                  'SQLite Active',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ],
                             ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 26),
+
+                      // Welcome Back Greeting (from Concept Video)
+                      const Text(
+                        'Welcome back',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Your feeds, friends, and creator community are waiting',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.60),
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Field 1: Email / Username
+                      const Text(
+                        'Email or Username',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF12141F),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF262A3E)),
+                        ),
+                        child: TextField(
+                          controller: _usernameController,
+                          style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                          decoration: const InputDecoration(
+                            icon: Icon(Icons.alternate_email_rounded, color: Color(0xFF00F2FE), size: 18),
+                            hintText: 'Enter your email or username',
+                            hintStyle: TextStyle(color: Colors.white24, fontSize: 13),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Field 2: Password
+                      const Text(
+                        'Password',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF12141F),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF262A3E)),
+                        ),
+                        child: TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                          decoration: InputDecoration(
+                            icon: const Icon(Icons.lock_outline_rounded, color: Color(0xFFFE2C55), size: 18),
+                            hintText: 'Enter your password',
+                            hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
+                            border: InputBorder.none,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.white38,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Remember Me & Forgot Password
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _rememberMe = !_rememberMe;
+                              });
+                            },
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _rememberMe ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                                  color: _rememberMe ? const Color(0xFFFE2C55) : Colors.white30,
+                                  size: 17,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Remember me',
+                                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            'Forgot password?',
+                            style: TextStyle(
+                              color: const Color(0xFF00F2FE).withOpacity(0.9),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Primary Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFE2C55),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                            elevation: 8,
+                            shadowColor: const Color(0xFFFE2C55).withOpacity(0.5),
+                          ),
+                          onPressed: _handleLogin,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Login',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Divider "Or continue with" (from Concept Video)
+                      Row(
+                        children: [
+                          Expanded(child: Divider(color: Colors.white.withOpacity(0.12))),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Text(
+                              'Or continue with',
+                              style: TextStyle(color: Colors.white.withOpacity(0.40), fontSize: 11.5),
+                            ),
+                          ),
+                          Expanded(child: Divider(color: Colors.white.withOpacity(0.12))),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Social Logins (Google & Apple pills)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _handleLogin,
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF131522),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFF262A3E)),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.g_mobiledata_rounded, color: Colors.white, size: 28),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Google',
+                                      style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _handleLogin,
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF131522),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFF262A3E)),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.apple, color: Colors.white, size: 20),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Apple',
+                                      style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Footer: Don't have an account? Create an account
+                      Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             Text(
-                              'Lupa Sandi?',
+                              "Don't have an account? ",
+                              style: TextStyle(color: Colors.white.withOpacity(0.50), fontSize: 12),
+                            ),
+                            Text(
+                              'Create an account',
                               style: TextStyle(
-                                color: const Color(0xFF00F2FE).withOpacity(0.85),
-                                fontSize: 11.5,
+                                color: const Color(0xFF00F2FE),
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
-
-                        // Animated Morphing Login Button
-                        GestureDetector(
-                          onTap: _handleLogin,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOutCubic,
-                            width: double.infinity,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: _btnState == 'success'
-                                    ? [const Color(0xFF10B981), const Color(0xFF059669)]
-                                    : [const Color(0xFFFE2C55), const Color(0xFF00F2FE)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(24),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (_btnState == 'success'
-                                          ? const Color(0xFF10B981)
-                                          : const Color(0xFFFE2C55))
-                                      .withOpacity(0.45),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: _buildButtonContent(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Bottom Demo Hint
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF121520),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white10),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.key_rounded, color: Color(0xFF00F2FE), size: 13),
-                        SizedBox(width: 6),
-                        Text(
-                          'Demo User: andrianpei · Sandi: password123',
-                          style: TextStyle(color: Colors.white60, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-                ],
+                ),
               ),
             ),
           ),
+
+          // 3. WOW Loading Animation Overlay ("Logging you in...") (Exact Sec 12s from Concept Video)
+          if (_loginState != 'idle')
+            Container(
+              color: Colors.black.withOpacity(0.88),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Glowing Animated Pulse Spinner
+                    SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (_loginState == 'logging_in') ...[
+                            SizedBox(
+                              width: 70,
+                              height: 70,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3.5,
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFE2C55)),
+                                backgroundColor: const Color(0xFF00F2FE).withOpacity(0.2),
+                              ),
+                            ),
+                            Container(
+                              width: 32,
+                              height: 32,
+                              padding: const EdgeInsets.all(4),
+                              child: CustomPaint(
+                                painter: SHLogoPainter(
+                                  progress: 1.0,
+                                  glowIntensity: 0.9,
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF10B981),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0xFF10B981),
+                                    blurRadius: 20,
+                                    spreadRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.check_rounded,
+                                color: Colors.white,
+                                size: 36,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // "Logging you in..." text from concept video
+                    Text(
+                      _loginState == 'logging_in' ? 'Logging you in...' : 'Welcome to Social Hub!',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // "Getting your feed ready..."
+                    Text(
+                      _loginState == 'logging_in'
+                          ? 'Getting your creator feeds & reels ready...'
+                          : 'Opening your dashboard...',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.60),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
-
-  Widget _buildButtonContent() {
-    if (_btnState == 'loading') {
-      return const SizedBox(
-        width: 22,
-        height: 22,
-        child: CircularProgressIndicator(
-          color: Colors.white,
-          strokeWidth: 2.5,
-        ),
-      );
-    }
-
-    if (_btnState == 'success') {
-      return const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-          SizedBox(width: 8),
-          Text(
-            'Berhasil Masuk!',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.5),
-          ),
-        ],
-      );
-    }
-
-    return const Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Masuk ke Halaman Beranda',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14.5,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.3,
-          ),
-        ),
-        SizedBox(width: 8),
-        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-      ],
-    );
-  }
 }
-
-class _LoginWavePainter extends CustomPainter {
-  final double animationValue;
-
-  _LoginWavePainter({required this.animationValue});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Gradient Background
-    final rect = Rect.fromLTWH(0, 0, w, h);
-    final paint1 = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          const Color(0xFFFE2C55).withOpacity(0.35),
-          const Color(0xFF00F2FE).withOpacity(0.18),
-          Colors.transparent,
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(rect);
-
-    final path1 = Path()
-      ..moveTo(0, 0)
-      ..lineTo(0, h * 0.75 + math.sin(animationValue * math.pi) * 15)
-      ..cubicTo(
-        w * 0.35,
-        h * 0.95 + math.cos(animationValue * math.pi) * 12,
-        w * 0.65,
-        h * 0.60 + math.sin(animationValue * math.pi) * 16,
-        w,
-        h * 0.80,
-      )
-      ..lineTo(w, 0)
-      ..close();
-
-    canvas.drawPath(path1, paint1);
-  }
-
-  @override
-  bool shouldRepaint(covariant _LoginWavePainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue;
-  }
-}
-

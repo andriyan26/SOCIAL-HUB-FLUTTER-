@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:social_hub/core/constants/app_colors.dart';
-import 'package:social_hub/presentation/widgets/ns_logo_painter.dart';
+import 'package:social_hub/presentation/widgets/sh_logo_painter.dart';
 
 class AnimatedSplashScreen extends StatefulWidget {
   final VoidCallback onCompleted;
@@ -23,9 +22,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
   late Animation<double> _glowAnimation;
   late Animation<double> _fadeAnimation;
 
-  Timer? _autoAdvanceTimer;
-  double _loadProgress = 0.0;
-  Timer? _progressTicker;
+  double _progress = 0.0;
+  Timer? _ticker;
 
   @override
   void initState() {
@@ -37,14 +35,14 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
 
-    // Entrance fade & zoom animation
+    // Entrance zoom & fade animation
     _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1000),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.75, end: 1.0).animate(
-      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutBack),
+    _scaleAnimation = Tween<double>(begin: 0.82, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -52,38 +50,36 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
       curve: Curves.easeIn,
     );
 
-    _glowAnimation = Tween<double>(begin: 0.8, end: 1.25).animate(
+    _glowAnimation = Tween<double>(begin: 0.85, end: 1.3).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
     _entranceController.forward();
 
-    // Progress bar simulation (3.5 seconds total)
-    _progressTicker = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    // Auto progress over 3.2 seconds
+    _ticker = Timer.periodic(const Duration(milliseconds: 40), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
       setState(() {
-        _loadProgress = (_loadProgress + 0.015).clamp(0.0, 1.0);
+        _progress = (_progress + 0.013).clamp(0.0, 1.0);
       });
-      if (_loadProgress >= 1.0) {
+      if (_progress >= 1.0) {
         timer.cancel();
-        _proceed();
+        widget.onCompleted();
       }
     });
   }
 
-  void _proceed() {
-    _autoAdvanceTimer?.cancel();
-    _progressTicker?.cancel();
+  void _skip() {
+    _ticker?.cancel();
     widget.onCompleted();
   }
 
   @override
   void dispose() {
-    _autoAdvanceTimer?.cancel();
-    _progressTicker?.cancel();
+    _ticker?.cancel();
     _pulseController.dispose();
     _entranceController.dispose();
     super.dispose();
@@ -92,54 +88,55 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF06070B),
+      backgroundColor: const Color(0xFF07080C),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: _proceed,
+        onTap: _skip,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Ambient Background Glows
+            // 1. Immersive Ambient Radial Glow in the background
             Center(
               child: Container(
-                width: 320,
-                height: 320,
+                width: 360,
+                height: 360,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFFFE2C55).withOpacity(0.12),
-                      const Color(0xFF00F2FE).withOpacity(0.08),
+                      const Color(0xFFFE2C55).withOpacity(0.14),
+                      const Color(0xFF00F2FE).withOpacity(0.09),
                       Colors.transparent,
                     ],
-                    radius: 0.7,
+                    radius: 0.72,
                   ),
                 ),
               ),
             ),
 
-            // 2. Animated Floating Neon Sparkles
-            ...List.generate(6, (i) {
-              final angle = i * (math.pi / 3);
+            // 2. Floating Cyberpunk Neon Dust Particles
+            ...List.generate(8, (i) {
+              final angle = i * (math.pi / 4);
               return AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, _) {
-                  final offsetDist = 120 + 20 * math.sin(_pulseController.value * math.pi * 2 + i);
-                  final dx = offsetDist * math.cos(angle);
-                  final dy = offsetDist * math.sin(angle);
+                  final dist = 110.0 + 25.0 * math.sin(_pulseController.value * math.pi * 2 + i * 0.8);
+                  final dx = dist * math.cos(angle);
+                  final dy = dist * math.sin(angle);
+                  final isCyan = i % 2 == 0;
                   return Center(
                     child: Transform.translate(
                       offset: Offset(dx, dy),
                       child: Container(
-                        width: (i % 2 == 0) ? 5 : 4,
-                        height: (i % 2 == 0) ? 5 : 4,
+                        width: isCyan ? 4.5 : 3.5,
+                        height: isCyan ? 4.5 : 3.5,
                         decoration: BoxDecoration(
-                          color: (i % 2 == 0) ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
+                          color: isCyan ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: (i % 2 == 0) ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
-                              blurRadius: 8,
+                              color: isCyan ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
+                              blurRadius: 10,
                               spreadRadius: 2,
                             ),
                           ],
@@ -151,7 +148,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
               );
             }),
 
-            // 3. Center NS Logo + Typography
+            // 3. Center Animated "SH" (Social Hub) Logo & Branding
             Center(
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -160,15 +157,15 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Glowing NS Logo
+                      // 3D Neon "SH" Monogram
                       AnimatedBuilder(
                         animation: _pulseController,
                         builder: (context, _) {
                           return SizedBox(
-                            width: 190,
+                            width: 180,
                             height: 140,
                             child: CustomPaint(
-                              painter: NSLogoPainter(
+                              painter: SHLogoPainter(
                                 progress: 1.0,
                                 glowIntensity: _glowAnimation.value,
                               ),
@@ -176,34 +173,38 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                           );
                         },
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 32),
 
-                      // Brand Name "NoShot" with Cyberpunk Gradient
+                      // "SOCIAL HUB" Typography with Shimmering Gradient
                       ShaderMask(
                         shaderCallback: (bounds) => const LinearGradient(
-                          colors: [Color(0xFF00F2FE), Color(0xFFFFFFFF), Color(0xFFFE2C55)],
+                          colors: [
+                            Color(0xFF00F2FE),
+                            Color(0xFFFFFFFF),
+                            Color(0xFFFE2C55),
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ).createShader(bounds),
                         child: const Text(
-                          'N O S H O T',
+                          'S O C I A L   H U B',
                           style: TextStyle(
-                            fontSize: 26,
+                            fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
-                            letterSpacing: 8,
+                            letterSpacing: 6.0,
                           ),
                         ),
                       ),
                       const SizedBox(height: 10),
 
-                      // Tagline
+                      // Slogan
                       Text(
                         'Jelajahi Kreativitas Tanpa Batas',
                         style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
-                          color: Colors.white.withOpacity(0.65),
+                          color: Colors.white.withOpacity(0.60),
                           letterSpacing: 1.2,
                         ),
                       ),
@@ -213,108 +214,32 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
               ),
             ),
 
-            // 4. Top Tag: "KONSEP 1: ANIMASI SEBELUM LOGIN"
+            // 4. Elegant Minimal Bottom Progress Line
             Positioned(
-              top: 52,
-              left: 18,
-              right: 18,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00F2FE).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF00F2FE), width: 0.8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome, color: Color(0xFF00F2FE), size: 12),
-                        SizedBox(width: 5),
-                        Text(
-                          '1. ANIMASI INTRO (NATIVE)',
-                          style: TextStyle(
-                            color: Color(0xFF00F2FE),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _proceed,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white24, width: 0.8),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Lewati ➔',
-                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 5. Bottom Loading Indicator & Action Button
-            Positioned(
-              left: 24,
-              right: 24,
-              bottom: 40,
+              left: 36,
+              right: 36,
+              bottom: 48,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Progress Bar
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: _loadProgress,
-                      backgroundColor: Colors.white12,
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00F2FE)),
-                      minHeight: 3.5,
+                    borderRadius: BorderRadius.circular(3),
+                    child: SizedBox(
+                      height: 3,
+                      child: LinearProgressIndicator(
+                        value: _progress,
+                        backgroundColor: Colors.white10,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00F2FE)),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 14),
-
-                  // Button to advance to login animation
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFE2C55),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                        elevation: 6,
-                      ),
-                      onPressed: _proceed,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Lanjut ke Animasi Login',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 17),
-                        ],
-                      ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Ketuk untuk langsung masuk',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.35),
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ],
@@ -326,4 +251,3 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
     );
   }
 }
-

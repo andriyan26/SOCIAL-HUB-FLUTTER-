@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/presentation/widgets/sh_logo_painter.dart';
 
 class SocialHubBrandLogo extends StatelessWidget {
   final double size;
@@ -11,38 +12,30 @@ class SocialHubBrandLogo extends StatelessWidget {
     return Container(
       width: size,
       height: size,
+      padding: EdgeInsets.all(size * 0.12),
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(size * 0.3),
+        borderRadius: BorderRadius.circular(size * 0.28),
         border: Border.all(color: const Color(0xFF334155), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withOpacity(0.35),
             blurRadius: 6,
             offset: const Offset(-1, 0),
           ),
           BoxShadow(
-            color: AppColors.cyan.withOpacity(0.3),
+            color: AppColors.cyan.withOpacity(0.35),
             blurRadius: 6,
             offset: const Offset(1, 0),
           ),
         ],
       ),
-      child: Center(
-        child: ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Color(0xFFFE2C55), Color(0xFF25F4EE)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
-          child: Icon(
-            Icons.music_note_rounded,
-            size: size * 0.65,
-            color: Colors.white,
-          ),
+      child: CustomPaint(
+        painter: SHLogoPainter(
+          progress: 1.0,
+          glowIntensity: 0.8,
         ),
       ),
     );
   }
 }
-
