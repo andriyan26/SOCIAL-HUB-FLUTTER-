@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import 'core/theme/app_theme.dart';
-import 'data/datasources/local_data_source.dart';
-import 'data/repositories/auth_repository_impl.dart';
-import 'data/repositories/post_repository_impl.dart';
-import 'data/repositories/notification_repository_impl.dart';
-import 'data/repositories/friend_repository_impl.dart';
+import 'package:social_hub/core/theme/app_theme.dart';
+import 'package:social_hub/data/datasources/local_data_source.dart';
+import 'package:social_hub/data/repositories/auth_repository_impl.dart';
+import 'package:social_hub/data/repositories/post_repository_impl.dart';
+import 'package:social_hub/data/repositories/notification_repository_impl.dart';
+import 'package:social_hub/data/repositories/friend_repository_impl.dart';
 
-import 'presentation/providers/auth_provider.dart';
-import 'presentation/providers/feed_provider.dart';
-import 'presentation/providers/community_provider.dart';
-import 'presentation/providers/camera_provider.dart';
-import 'presentation/providers/inbox_provider.dart';
-import 'presentation/providers/profile_provider.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
+import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/providers/community_provider.dart';
+import 'package:social_hub/presentation/providers/camera_provider.dart';
+import 'package:social_hub/presentation/providers/inbox_provider.dart';
+import 'package:social_hub/presentation/providers/profile_provider.dart';
 
-import 'presentation/screens/landing/landing_screen.dart';
-import 'presentation/screens/main/main_screen.dart';
+import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
+import 'package:social_hub/presentation/screens/main/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -124,4 +124,3 @@ class AppRootRouter extends StatelessWidget {
     return const LandingScreen();
   }
 }
-

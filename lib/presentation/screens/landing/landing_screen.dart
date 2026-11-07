@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import 'package:social_hub/presentation/core/constants/app_colors.dart';
-import 'package:social_hub/presentation/core/constants/app_assets.dart';
+import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/presentation/screens/auth/login_screen.dart';
 import 'package:social_hub/presentation/screens/auth/register_screen.dart';
-import 'package:social_hub/presentation/screens/widgets/custom_button.dart';
+import 'package:social_hub/presentation/widgets/custom_button.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});

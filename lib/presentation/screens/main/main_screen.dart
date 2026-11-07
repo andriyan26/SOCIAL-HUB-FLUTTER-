@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:social_hub/presentation/core/constants/app_colors.dart';
-import 'package:social_hub/presentation/screens/providers/inbox_provider.dart';
-import 'package:social_hub/presentation/screens/providers/auth_provider.dart';
-import 'package:social_hub/presentation/screens/widgets/tiktok_nav_bar.dart';
+import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/presentation/providers/inbox_provider.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
+import 'package:social_hub/presentation/widgets/tiktok_nav_bar.dart';
 import 'package:social_hub/presentation/screens/feed/feed_screen.dart';
 import 'package:social_hub/presentation/screens/community/community_screen.dart';
 import 'package:social_hub/presentation/screens/camera/camera_studio_screen.dart';
