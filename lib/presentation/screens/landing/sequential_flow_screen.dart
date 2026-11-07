@@ -51,17 +51,20 @@ class _SequentialFlowScreenState extends State<SequentialFlowScreen> {
       });
     }
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 650),
-      switchInCurve: Curves.easeInOutCubic,
-      switchOutCurve: Curves.easeInOutCubic,
-      transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
-      },
-      child: _buildCurrentStage(),
+    return Container(
+      color: const Color(0xFF07080C),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 650),
+        switchInCurve: Curves.easeInOutCubic,
+        switchOutCurve: Curves.easeInOutCubic,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+        child: _buildCurrentStage(),
+      ),
     );
   }
 

@@ -110,45 +110,7 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Ambient Background Glows
-          Positioned(
-            top: -80,
-            right: -80,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFFFE2C55).withOpacity(0.18),
-                    Colors.transparent,
-                  ],
-                  radius: 0.7,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 60,
-            left: -60,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF00F2FE).withOpacity(0.12),
-                    Colors.transparent,
-                  ],
-                  radius: 0.7,
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Main Login Form View
+          // 1. Main Login Form View (Clean OLED Pitch Black)
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnimation,

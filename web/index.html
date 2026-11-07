@@ -40,7 +40,12 @@
 </head>
 <body style="background-color: #07080A; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh;">
   <script>
-    // Force unregister service workers to avoid stale cache
+    // Force clear caches & service workers
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (let name of names) caches.delete(name);
+      });
+    }
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for (var i = 0; i < registrations.length; i++) {
@@ -62,6 +67,6 @@
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
   </script>
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="flutter_bootstrap.js?v=24" async></script>
 </body>
 </html>

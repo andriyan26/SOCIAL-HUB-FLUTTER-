@@ -239,7 +239,7 @@ class IPhone13FrameWrapper extends StatelessWidget {
               width: 820,
               height: 1024,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: const Color(0xFF07080C),
                 borderRadius: BorderRadius.circular(36),
                 border: Border.all(color: const Color(0xFF475569), width: 10),
                 boxShadow: const [
@@ -300,9 +300,10 @@ class IPhone13FrameWrapper extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(42),
-              child: SizedBox(
+              child: Container(
                 width: phoneW,
                 height: phoneH,
+                color: const Color(0xFF07080C),
                 child: MediaQuery(
                   data: MediaQuery.of(context).copyWith(
                     size: const Size(phoneW, phoneH),
@@ -414,7 +415,7 @@ class IPhone13FrameWrapper extends StatelessWidget {
                   width: 42,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
+                    color: const Color(0xFF07080C),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),

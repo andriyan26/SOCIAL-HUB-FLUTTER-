@@ -189,33 +189,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
           fit: StackFit.expand,
           children: [
             // -----------------------------------------------------------
-            // 1. Soft Ambient Background Bloom (CSS BoxShadow, Zero Grey Box)
-            // -----------------------------------------------------------
-            Center(
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00F2FE).withOpacity(0.08),
-                      blurRadius: 90,
-                      spreadRadius: 15,
-                    ),
-                    BoxShadow(
-                      color: const Color(0xFFFE2C55).withOpacity(0.08),
-                      blurRadius: 90,
-                      spreadRadius: 15,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // -----------------------------------------------------------
-            // 2. Floating Cyberpunk Micro Embers
+            // 1. Floating Cyberpunk Micro Embers (Clean OLED Background)
             // -----------------------------------------------------------
             ...List.generate(10, (i) {
               final angle = i * (math.pi / 5);
@@ -231,10 +205,10 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                     child: Transform.translate(
                       offset: Offset(dx, dy),
                       child: Container(
-                        width: isCyan ? 3.0 : 2.2,
-                        height: isCyan ? 3.0 : 2.2,
+                        width: isCyan ? 2.8 : 2.0,
+                        height: isCyan ? 2.8 : 2.0,
                         decoration: BoxDecoration(
-                          color: isCyan ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
+                          color: (isCyan ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55)).withOpacity(0.65),
                           shape: BoxShape.circle,
                         ),
                       ),
