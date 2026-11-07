@@ -5,6 +5,7 @@ import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/presentation/providers/inbox_provider.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
+import 'package:social_hub/presentation/widgets/app_avatar.dart';
 
 class InboxScreen extends StatefulWidget {
   const InboxScreen({super.key});
@@ -572,16 +573,12 @@ class _InboxScreenState extends State<InboxScreen> {
                     ),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 19,
-                          backgroundColor: AppColors.avatarPurple,
-                          backgroundImage: (username == 'andrianpei' &&
-                                  context.read<AuthProvider>().currentUser?.avatarUrl.isNotEmpty == true &&
-                                  context.read<AuthProvider>().currentUser!.avatarUrl != 'purple_a' &&
-                                  context.read<AuthProvider>().currentUser!.avatarUrl.startsWith('assets/'))
-                              ? AssetImage(context.read<AuthProvider>().currentUser!.avatarUrl)
-                              : (username == 'andrianpei' ? const AssetImage(AppAssets.imgAndrianPoster) : null),
-                          child: username != 'andrianpei' ? Text(name[0].toLowerCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)) : null,
+                        AppAvatar(
+                          avatarUrl: username == 'andrianpei'
+                              ? (context.read<AuthProvider>().currentUser?.avatarUrl ?? AppAssets.imgAndrianPoster)
+                              : '',
+                          size: 38,
+                          fallbackInitial: name.isNotEmpty ? name[0].toLowerCase() : 'a',
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -1226,23 +1223,11 @@ class _InboxScreenState extends State<InboxScreen> {
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                Container(
-                                  width: 56,
-                                  height: 56,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.avatarPurple,
-                                    shape: BoxShape.circle,
-                                    border: _hasCreatedStory
-                                        ? Border.all(color: const Color(0xFF20D5EC), width: 2.5)
-                                        : null,
-                                  ),
-                                  child: ClipOval(
-                                    child: (userAvatar.isNotEmpty && userAvatar != 'purple_a' && userAvatar.startsWith('assets/'))
-                                        ? Image.asset(userAvatar, fit: BoxFit.cover)
-                                        : const Center(
-                                            child: Text('a', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600)),
-                                          ),
-                                  ),
+                                AppAvatar(
+                                  avatarUrl: userAvatar,
+                                  size: 56,
+                                  borderWidth: _hasCreatedStory ? 2.5 : 0,
+                                  borderColor: const Color(0xFF20D5EC),
                                 ),
                                 Positioned(
                                   bottom: 0,
@@ -1428,30 +1413,22 @@ class _InboxScreenState extends State<InboxScreen> {
         leading: Stack(
           clipBehavior: Clip.none,
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: iconBg,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: isUserAvatar
-                    ? ClipOval(
-                        child: (context.watch<AuthProvider>().currentUser?.avatarUrl.isNotEmpty == true &&
-                                context.watch<AuthProvider>().currentUser!.avatarUrl != 'purple_a' &&
-                                context.watch<AuthProvider>().currentUser!.avatarUrl.startsWith('assets/'))
-                            ? Image.asset(
-                                context.watch<AuthProvider>().currentUser!.avatarUrl,
-                                fit: BoxFit.cover,
-                                width: 50,
-                                height: 50,
-                              )
-                            : const Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
-                      )
-                    : Icon(icon, color: Colors.white, size: 26),
-              ),
-            ),
+            isUserAvatar
+                ? AppAvatar(
+                    avatarUrl: context.watch<AuthProvider>().currentUser?.avatarUrl ?? '',
+                    size: 50,
+                  )
+                : Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: iconBg,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(icon, color: Colors.white, size: 26),
+                    ),
+                  ),
             if (hasBadge)
               Positioned(
                 top: 0,

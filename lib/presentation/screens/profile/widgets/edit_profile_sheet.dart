@@ -7,6 +7,8 @@ import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/widgets/custom_button.dart';
 import 'package:social_hub/presentation/widgets/custom_text_field.dart';
+import 'package:social_hub/presentation/widgets/app_avatar.dart';
+import 'package:social_hub/presentation/screens/camera/web_file_picker.dart';
 
 class EditProfileSheet extends StatefulWidget {
   const EditProfileSheet({super.key});
@@ -19,6 +21,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   late TextEditingController _nameController;
   late TextEditingController _bioController;
   late String _selectedAvatar;
+  String? _customUploadedName;
 
   final List<Map<String, String>> _avatarOptions = const [
     {
@@ -61,6 +64,27 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     super.dispose();
   }
 
+  void _triggerNativeImagePicker() {
+    pickImageFileNative(
+      onSelected: (fileName, pathOrUrl) {
+        if (pathOrUrl != null && pathOrUrl.isNotEmpty) {
+          setState(() {
+            _selectedAvatar = pathOrUrl;
+            _customUploadedName = fileName;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✨ Foto "$fileName" berhasil dipilih! Tekan "Simpan Perubahan" untuk menerapkan.'),
+              backgroundColor: const Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+    );
+  }
+
   Future<void> _save() async {
     final auth = context.read<AuthProvider>();
     final user = auth.currentUser;
@@ -76,14 +100,14 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     );
 
     if (mounted) {
-      // Synchronize across all active providers so Beranda, Disk, & Profile update immediately
+      // Synchronize across all active providers so Beranda, Rotating Disk, & Profile update immediately
       context.read<FeedProvider>().updateAuthorAvatar(userId, _selectedAvatar);
       context.read<ProfileProvider>().updateAuthorAvatar(userId, _selectedAvatar);
 
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✨ Foto dan Profil berhasil diperbarui di seluruh aplikasi!'),
+          content: Text('🎉 Foto Profil berhasil disimpan dan sinkron ke Beranda & Profil!'),
           backgroundColor: Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
         ),
@@ -123,58 +147,82 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // Main Avatar Preview with Camera badge
+            // Main Avatar Preview with Camera badge (Tap to open native picker)
             Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
-                    width: 86,
-                    height: 86,
-                    decoration: BoxDecoration(
-                      color: AppColors.avatarPurple,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary, width: 2.5),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _triggerNativeImagePicker,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    AppAvatar(
+                      avatarUrl: _selectedAvatar,
+                      size: 92,
+                      borderWidth: 3,
+                      borderColor: const Color(0xFF20D5EC),
                     ),
-                    child: ClipOval(
-                      child: _selectedAvatar != 'purple_a' && _selectedAvatar.startsWith('assets/')
-                          ? Image.asset(
-                              _selectedAvatar,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Center(
-                                child: Text('a', style: TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold)),
-                              ),
-                            )
-                          : const Center(
-                              child: Text('a', style: TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold)),
-                            ),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black45, blurRadius: 4),
+                        ],
+                      ),
+                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
-            const Center(
+
+            Center(
               child: Text(
-                'Pilih Foto Profil Anda',
-                style: TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w500),
+                _customUploadedName != null
+                    ? 'Foto Kustom: $_customUploadedName'
+                    : 'Ketuk foto untuk ganti foto',
+                style: TextStyle(
+                  color: _customUploadedName != null ? const Color(0xFF20D5EC) : Colors.white70,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             const SizedBox(height: 14),
 
+            // Prominent "Unggah Foto dari Galeri / Laptop" Button
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF20D5EC),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                ),
+                icon: const Icon(Icons.photo_library_rounded, color: Colors.black, size: 20),
+                label: const Text(
+                  'Unggah Foto dari Galeri / Laptop',
+                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13.5),
+                ),
+                onPressed: _triggerNativeImagePicker,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            const Text(
+              'Atau Pilih Foto Preset:',
+              style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+
             // Horizontal Avatar Option Picker
             SizedBox(
-              height: 84,
+              height: 86,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _avatarOptions.length,
@@ -183,9 +231,11 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                   final opt = _avatarOptions[index];
                   final isSelected = _selectedAvatar == opt['path'];
                   return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () {
                       setState(() {
                         _selectedAvatar = opt['path']!;
+                        _customUploadedName = null;
                       });
                     },
                     child: Column(
@@ -202,15 +252,9 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(2),
-                            child: ClipOval(
-                              child: opt['path'] != 'purple_a'
-                                  ? Image.asset(opt['path']!, fit: BoxFit.cover)
-                                  : Container(
-                                      color: AppColors.avatarPurple,
-                                      child: const Center(
-                                        child: Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-                                      ),
-                                    ),
+                            child: AppAvatar(
+                              avatarUrl: opt['path']!,
+                              size: 48,
                             ),
                           ),
                         ),

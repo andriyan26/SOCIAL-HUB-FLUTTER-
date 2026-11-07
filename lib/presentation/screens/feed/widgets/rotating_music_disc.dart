@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:social_hub/presentation/widgets/app_avatar.dart';
 
 class RotatingMusicDisc extends StatefulWidget {
   final String imagePath;
@@ -50,16 +51,11 @@ class _RotatingMusicDiscState extends State<RotatingMusicDisc> with SingleTicker
                 ),
               ],
             ),
-            child: ClipOval(
-              child: Image.asset(
-                widget.imagePath,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Colors.purple.shade700,
-                  child: const Center(
-                    child: Icon(Icons.music_note, color: Colors.white, size: 20),
-                  ),
-                ),
+            child: Center(
+              child: AppAvatar(
+                avatarUrl: widget.imagePath,
+                size: 36,
+                fallbackChild: const Icon(Icons.music_note, color: Colors.white, size: 18),
               ),
             ),
           ),

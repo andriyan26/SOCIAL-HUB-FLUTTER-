@@ -15,3 +15,4 @@ class WebcamPreviewWidget extends StatelessWidget {
     return const SizedBox.shrink();
   }
 }
+

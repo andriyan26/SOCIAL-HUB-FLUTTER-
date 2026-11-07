@@ -7,6 +7,7 @@ import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'widgets/rotating_music_disc.dart';
 import 'widgets/comments_sheet.dart';
 import 'widgets/share_sheet.dart';
@@ -962,25 +963,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       alignment: Alignment.bottomCenter,
       clipBehavior: Clip.none,
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 1.5),
-          ),
-          child: ClipOval(
-            child: Image.asset(
-              avatarPath,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: AppColors.avatarPurple,
-                child: const Center(
-                  child: Text('A', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ),
-          ),
+        AppAvatar(
+          avatarUrl: avatarPath,
+          size: 48,
+          borderWidth: 1.5,
+          borderColor: Colors.white,
         ),
         Positioned(
           bottom: -7,

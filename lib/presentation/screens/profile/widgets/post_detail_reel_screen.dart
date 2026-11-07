@@ -10,6 +10,7 @@ import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/comments_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/share_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/rotating_music_disc.dart';
+import 'package:social_hub/presentation/widgets/app_avatar.dart';
 
 class PostDetailReelScreen extends StatefulWidget {
   final List<PostEntity> posts;
@@ -485,32 +486,11 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
   }
 
   Widget _buildAuthorAvatar(String avatarPath) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
-      ),
-      child: ClipOval(
-        child: avatarPath.isNotEmpty && avatarPath != 'purple_a' && avatarPath.startsWith('assets/')
-            ? Image.asset(
-                avatarPath,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: AppColors.avatarPurple,
-                  child: const Center(
-                    child: Text('A', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              )
-            : Container(
-                color: AppColors.avatarPurple,
-                child: const Center(
-                  child: Text('A', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ),
-      ),
+    return AppAvatar(
+      avatarUrl: avatarPath,
+      size: 48,
+      borderWidth: 1.5,
+      borderColor: Colors.white,
     );
   }
 

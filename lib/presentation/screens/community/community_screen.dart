@@ -5,6 +5,7 @@ import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/community_provider.dart';
+import 'package:social_hub/presentation/widgets/app_avatar.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -182,19 +183,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                CircleAvatar(
-                  radius: 17,
-                  backgroundColor: AppColors.avatarPurple,
-                  backgroundImage: (userAvatar.isNotEmpty && userAvatar != 'purple_a' && userAvatar.startsWith('assets/'))
-                      ? AssetImage(userAvatar)
-                      : null,
-                  child: (userAvatar.isEmpty || userAvatar == 'purple_a' || !userAvatar.startsWith('assets/'))
-                      ? const Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))
-                      : null,
+                AppAvatar(
+                  avatarUrl: userAvatar,
+                  size: 34,
                 ),
                 Positioned(
-                  bottom: 4,
-                  right: 2,
+                  bottom: 2,
+                  right: 0,
                   child: Container(
                     width: 14,
                     height: 14,

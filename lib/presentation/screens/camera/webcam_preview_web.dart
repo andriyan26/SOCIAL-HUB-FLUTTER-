@@ -102,3 +102,4 @@ class _WebcamPreviewWidgetState extends State<WebcamPreviewWidget> {
     return const SizedBox.shrink();
   }
 }
+

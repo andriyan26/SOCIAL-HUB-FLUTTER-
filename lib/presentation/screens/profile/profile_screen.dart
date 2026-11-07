@@ -6,6 +6,7 @@ import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
+import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'widgets/edit_profile_sheet.dart';
 import 'widgets/post_detail_reel_screen.dart';
 
@@ -337,14 +338,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Text('Beralih Akun', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
             ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.avatarPurple,
-                backgroundImage: userAvatar.isNotEmpty && userAvatar != 'purple_a' && userAvatar.startsWith('assets/')
-                    ? AssetImage(userAvatar)
-                    : null,
-                child: userAvatar.isEmpty || userAvatar == 'purple_a' || !userAvatar.startsWith('assets/')
-                    ? const Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                    : null,
+              leading: AppAvatar(
+                avatarUrl: userAvatar,
+                size: 40,
               ),
               title: Text(user?.username ?? 'andrianpei', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               subtitle: const Text('Akun Utama (Aktif)', style: TextStyle(color: AppColors.cyan, fontSize: 12)),
@@ -558,32 +554,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Stack(
                       alignment: Alignment.bottomRight,
                       children: [
-                        Container(
-                          width: 96,
-                          height: 96,
-                          decoration: const BoxDecoration(
-                            color: AppColors.avatarPurple,
-                            shape: BoxShape.circle,
-                          ),
-                          child: ClipOval(
-                            child: (userAvatar.isNotEmpty && userAvatar != 'purple_a' && userAvatar.startsWith('assets/'))
-                                ? Image.asset(
-                                    userAvatar,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Center(
-                                      child: Text(
-                                        'a',
-                                        style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Colors.white),
-                                      ),
-                                    ),
-                                  )
-                                : const Center(
-                                    child: Text(
-                                      'a',
-                                      style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Colors.white),
-                                    ),
-                                  ),
-                          ),
+                        AppAvatar(
+                          avatarUrl: userAvatar,
+                          size: 96,
+                          borderWidth: 3,
+                          borderColor: const Color(0xFF20D5EC),
                         ),
                         Positioned(
                           right: 2,
