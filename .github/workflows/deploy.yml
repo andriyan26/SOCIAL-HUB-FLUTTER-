@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -16,12 +16,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -39,25 +35,23 @@ jobs:
         run: flutter pub get
 
       - name: Build Flutter Web
-        run: |
-          mkdir -p build/web
-          flutter build web --release --base-href "/SOCIAL-HUB-FLUTTER-/" > build_verbose.log 2>&1 || BUILD_FAILED=1
-          if [ "$BUILD_FAILED" = "1" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git checkout -B build-log
-            git add -f build_verbose.log
-            git commit -m "chore: save build failure log" || true
-            git push -f origin build-log || true
-            cat build_verbose.log
-            exit 1
-          fi
+        run: flutter build web --release --base-href "/SOCIAL-HUB-FLUTTER-/"
 
-      - name: Upload Artifact
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
 
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
