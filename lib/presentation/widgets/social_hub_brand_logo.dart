@@ -45,3 +45,4 @@ class SocialHubBrandLogo extends StatelessWidget {
     );
   }
 }
+

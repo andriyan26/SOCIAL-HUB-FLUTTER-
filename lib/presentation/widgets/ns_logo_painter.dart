@@ -129,3 +129,4 @@ class NSLogoPainter extends CustomPainter {
     return oldDelegate.progress != progress || oldDelegate.glowIntensity != glowIntensity;
   }
 }
+

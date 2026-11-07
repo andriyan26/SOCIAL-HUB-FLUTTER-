@@ -520,3 +520,4 @@ class _LoginWavePainter extends CustomPainter {
     return oldDelegate.animationValue != animationValue;
   }
 }
+
