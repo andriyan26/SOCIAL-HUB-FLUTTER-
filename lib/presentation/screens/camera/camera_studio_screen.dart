@@ -425,6 +425,99 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with SingleTick
     );
   }
 
+  void _showPublishDialog(BuildContext context, CameraProvider camera) {
+    final captionController = TextEditingController(text: 'Momen seru hari ini! 🚀 #socialhub #fyp');
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Publikasikan Konten', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: captionController,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white, fontSize: 13.5),
+              decoration: InputDecoration(
+                hintText: 'Jelaskan video Anda, tambahkan tagar, atau sebut teman...',
+                fillColor: const Color(0xFF141418),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Icon(Icons.music_note, color: AppColors.primary, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    camera.selectedSound,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
+                ),
+                onPressed: () async {
+                  final user = context.read<AuthProvider>().currentUser;
+                  final newPost = await context.read<ProfileProvider>().createNewPost(
+                    userId: user?.id ?? 1,
+                    authorName: user?.name ?? 'Andrian Pei',
+                    authorUsername: user?.username ?? 'andrianpei',
+                    authorAvatar: user?.avatarUrl ?? AppAssets.imgProfile,
+                    videoUrl: AppAssets.videoLogin,
+                    caption: captionController.text.trim(),
+                    musicTitle: camera.selectedSound,
+                    thumbnailPath: AppAssets.imgProfile,
+                  );
+                  if (context.mounted) {
+                    context.read<FeedProvider>().addPostToFeed(newPost);
+                    Navigator.pop(context); // close sheet
+                    if (widget.onClose != null) widget.onClose!(); // return to feed
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Video berhasil dipublikasikan ke Beranda & Profil! 🔥')),
+                    );
+                  }
+                },
+                child: const Text('Posting Sekarang', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showSoundSelector(BuildContext context) {
     final sounds = [
       '♫ Sound Asli - Aurelie',

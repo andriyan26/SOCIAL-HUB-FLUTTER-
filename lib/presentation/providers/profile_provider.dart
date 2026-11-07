@@ -32,5 +32,29 @@ class ProfileProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-}
 
+  Future<PostEntity> createNewPost({
+    required int userId,
+    required String authorName,
+    required String authorUsername,
+    required String authorAvatar,
+    required String videoUrl,
+    required String caption,
+    required String musicTitle,
+    required String thumbnailPath,
+  }) async {
+    final newPost = await postRepository.createPost(
+      userId: userId,
+      authorName: authorName,
+      authorUsername: authorUsername,
+      authorAvatar: authorAvatar,
+      videoUrl: videoUrl,
+      caption: caption,
+      musicTitle: musicTitle,
+      thumbnailPath: thumbnailPath,
+    );
+    _userPosts.insert(0, newPost);
+    notifyListeners();
+    return newPost;
+  }
+}

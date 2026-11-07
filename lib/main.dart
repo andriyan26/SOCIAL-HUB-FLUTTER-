@@ -16,8 +16,8 @@ import 'package:social_hub/presentation/providers/camera_provider.dart';
 import 'package:social_hub/presentation/providers/inbox_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 
-import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
-import 'package:social_hub/presentation/screens/main/main_screen.dart';
+import 'package:social_hub/presentation/widgets/iphone_frame.dart';
+import 'package:social_hub/presentation/screens/landing/intro_animation_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,53 +74,13 @@ class SocialHubApp extends StatelessWidget {
       title: 'Social Hub',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const AppRootRouter(),
+      builder: (context, child) {
+        // Wrap with realistic iPhone 13 frame for desktop/browser preview
+        return IPhone13Frame(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      home: const IntroAnimationScreen(),
     );
-  }
-}
-
-class AppRootRouter extends StatelessWidget {
-  const AppRootRouter({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-
-    // Initial loading splash state
-    if (authProvider.status == AuthStatus.initial || authProvider.status == AuthStatus.authenticating) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'SOCIAL HUB',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2.0,
-                  color: Color(0xFFFE2C55),
-                ),
-              ),
-              SizedBox(height: 24),
-              CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFE2C55)),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Auto-login persistence check:
-    // If user has saved session in SQLite/SharedPreferences, go straight to MainScreen!
-    if (authProvider.isAuthenticated) {
-      return const MainScreen();
-    }
-
-    // Otherwise show cinematic landing screen
-    return const LandingScreen();
   }
 }

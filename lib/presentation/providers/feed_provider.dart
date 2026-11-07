@@ -32,6 +32,11 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
+  void addPostToFeed(PostEntity post) {
+    _posts.insert(0, post);
+    notifyListeners();
+  }
+
   void setActivePostIndex(int index) {
     _activePostIndex = index;
     notifyListeners();
@@ -108,4 +113,3 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 }
-
