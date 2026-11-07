@@ -22,3 +22,4 @@ class NotificationRepositoryImpl implements NotificationRepository {
     // Clear or mark all read
   }
 }
+

@@ -116,3 +116,4 @@ class LocalDataSource {
     await db.delete('friends', where: 'id = ?', whereArgs: [friendId]);
   }
 }
+

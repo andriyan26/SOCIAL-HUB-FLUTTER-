@@ -10,3 +10,4 @@ class AppAssets {
   static const String imgInbox = 'assets/images/img_8667.jpg';
   static const String imgProfile = 'assets/images/img_8668.jpg';
 }
+

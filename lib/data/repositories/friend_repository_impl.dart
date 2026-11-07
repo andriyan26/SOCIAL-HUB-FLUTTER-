@@ -32,3 +32,4 @@ class FriendRepositoryImpl implements FriendRepository {
     ).toList();
   }
 }
+

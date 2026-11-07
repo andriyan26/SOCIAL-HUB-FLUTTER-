@@ -16,3 +16,4 @@ class Formatters {
     return str.replaceAllMapped(reg, (Match m) => '${m[1]}.');
   }
 }
+

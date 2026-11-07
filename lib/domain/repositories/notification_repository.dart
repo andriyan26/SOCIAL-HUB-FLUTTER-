@@ -5,3 +5,4 @@ abstract class NotificationRepository {
   Future<void> markAsRead(int notificationId);
   Future<void> clearAll(int userId);
 }
+

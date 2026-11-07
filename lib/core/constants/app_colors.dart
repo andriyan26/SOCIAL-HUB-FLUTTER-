@@ -28,3 +28,4 @@ class AppColors {
   // User avatar default
   static const Color avatarPurple = Color(0xFF7852A9);
 }
+

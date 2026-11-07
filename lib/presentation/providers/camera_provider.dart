@@ -102,3 +102,4 @@ class CameraProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+

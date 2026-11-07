@@ -124,3 +124,4 @@ class AppRootRouter extends StatelessWidget {
     return const LandingScreen();
   }
 }
+

@@ -32,3 +32,4 @@ class FriendModel extends FriendEntity {
     };
   }
 }
+

@@ -29,3 +29,4 @@ class AppStrings {
   static const String tabFollowing = 'Mengikuti';
   static const String tabForYou = 'Saran';
 }
+

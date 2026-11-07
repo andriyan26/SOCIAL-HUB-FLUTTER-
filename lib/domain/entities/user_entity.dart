@@ -23,3 +23,4 @@ class UserEntity {
     required this.createdAt,
   });
 }
+

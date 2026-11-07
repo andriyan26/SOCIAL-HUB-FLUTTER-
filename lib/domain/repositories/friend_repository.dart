@@ -6,3 +6,4 @@ abstract class FriendRepository {
   Future<void> removeFriend(int friendId);
   Future<List<FriendEntity>> searchFriends(String query);
 }
+

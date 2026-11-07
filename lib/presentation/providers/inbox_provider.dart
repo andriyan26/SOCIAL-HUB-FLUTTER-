@@ -41,3 +41,4 @@ class InboxProvider extends ChangeNotifier {
     }
   }
 }
+

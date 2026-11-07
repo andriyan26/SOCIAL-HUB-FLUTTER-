@@ -537,3 +537,4 @@ class AppDatabase {
     return await db.delete(table, where: where, whereArgs: whereArgs);
   }
 }
+

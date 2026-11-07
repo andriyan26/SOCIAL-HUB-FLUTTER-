@@ -97,3 +97,4 @@ class CommentEntity {
     required this.createdAt,
   });
 }
+

@@ -52,3 +52,4 @@ class SessionService {
     await prefs.clear();
   }
 }
+
