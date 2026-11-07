@@ -17,14 +17,14 @@ class AnimatedSplashScreen extends StatefulWidget {
 }
 
 class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with TickerProviderStateMixin {
-  // Master Animation Controllers
-  late AnimationController _traceController;       // Phase 1: 0.0s - 1.8s
-  late AnimationController _impactController;      // Phase 2: 1.8s - 2.5s
-  late AnimationController _brandController;       // Phase 3: 2.5s - 3.4s
-  late AnimationController _ambientPulseController; // Ongoing breathing glow
-  late AnimationController _glitchController;      // Micro glitch twitch
+  // Master Choreographed Controllers (All VSYNC synchronized for 60 FPS butter-smooth motion)
+  late AnimationController _traceController;       // Phase 1: Stroke tracing
+  late AnimationController _impactController;      // Phase 2: Impact flash & solid expansion
+  late AnimationController _brandController;       // Phase 3: Brand reveal & expanding neon line
+  late AnimationController _ambientPulseController; // Subtle breathing glow
+  late AnimationController _progressController;    // Bottom progress bar (60 FPS)
 
-  // Tweens & Curves
+  // Animated Values
   late Animation<double> _traceAnimation;
   late Animation<double> _fillAnimation;
   late Animation<double> _flashAnimation;
@@ -33,26 +33,24 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
   late Animation<double> _brandSlide;
   late Animation<double> _lineWidth;
 
-  // Glitch offset state
+  // Micro glitch jitter
   Offset _glitchOffset = Offset.zero;
   Timer? _glitchTimer;
 
-  // Bottom Progress
-  double _progress = 0.0;
-  Timer? _ticker;
-
-  // Spark burst particles
+  // Erupting Burst Particles
   late List<_BurstParticle> _particles;
+
+  bool _isTransitioning = false;
 
   @override
   void initState() {
     super.initState();
 
-    // 1. Play native sound matching the concept video
+    // 1. Play native sound design matching the concept video
     playSplashAudioNative();
 
-    // 2. Initialize spark burst particles (28 particles in Cyan, Magenta, White)
-    final rand = math.Random(42);
+    // 2. Initialize 30 radial spark particles
+    final rand = math.Random(123);
     final colors = [
       const Color(0xFF00F2FE),
       const Color(0xFFFE2C55),
@@ -60,71 +58,76 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
       const Color(0xFF00F2FE),
       const Color(0xFFFF2A6D),
     ];
-    _particles = List.generate(28, (i) {
+    _particles = List.generate(30, (i) {
       return _BurstParticle(
         angle: rand.nextDouble() * 2 * math.pi,
-        distance: 40.0 + rand.nextDouble() * 110.0,
-        size: 2.0 + rand.nextDouble() * 3.5,
+        distance: 45.0 + rand.nextDouble() * 115.0,
+        size: 2.2 + rand.nextDouble() * 3.2,
         color: colors[i % colors.length],
       );
     });
 
-    // 3. Phase 1: Stroke Tracing (0 to 1800ms)
+    // 3. Phase 1: Stroke Tracing (1500ms)
     _traceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1500),
     );
     _traceAnimation = CurvedAnimation(
       parent: _traceController,
       curve: Curves.easeInOutCubic,
     );
 
-    // 4. Phase 2: Impact Flash & Solid Fill (800ms)
+    // 4. Phase 2: Impact Flash & Solid Fill Expansion (750ms)
     _impactController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 750),
     );
     _fillAnimation = CurvedAnimation(
       parent: _impactController,
       curve: Curves.easeOutBack,
     );
-    // Flash peaks early then fades
     _flashAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 35),
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 65),
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.85), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.85, end: 0.0), weight: 70),
     ]).animate(CurvedAnimation(parent: _impactController, curve: Curves.easeOut));
 
     _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.09), weight: 30),
-      TweenSequenceItem(tween: Tween(begin: 1.09, end: 1.0), weight: 70),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.07), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.07, end: 1.0), weight: 70),
     ]).animate(CurvedAnimation(parent: _impactController, curve: Curves.easeOutBack));
 
-    // 5. Phase 3: Brand Reveal (900ms)
+    // 5. Phase 3: Brand Reveal & Glowing Underline (800ms)
     _brandController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 800),
     );
     _brandFade = CurvedAnimation(parent: _brandController, curve: Curves.easeIn);
-    _brandSlide = Tween<double>(begin: 24.0, end: 0.0).animate(
+    _brandSlide = Tween<double>(begin: 20.0, end: 0.0).animate(
       CurvedAnimation(parent: _brandController, curve: Curves.easeOutCubic),
     );
-    _lineWidth = Tween<double>(begin: 0.0, end: 170.0).animate(
+    _lineWidth = Tween<double>(begin: 0.0, end: 175.0).animate(
       CurvedAnimation(parent: _brandController, curve: Curves.easeOutCubic),
     );
 
     // 6. Ambient Breathing Glow
     _ambientPulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1600),
     )..repeat(reverse: true);
 
-    // 7. Micro Glitch Controller
-    _glitchController = AnimationController(
+    // 7. Butter-smooth 60 FPS Bottom Progress Bar (Total 4000ms)
+    _progressController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
+      duration: const Duration(milliseconds: 4000),
     );
+    _progressController.forward();
+    _progressController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _skip();
+      }
+    });
 
-    // Sequence Choreography
+    // Sequence Choreography: Tracing -> Impact -> Brand
     _traceController.forward().then((_) {
       if (!mounted) return;
       _impactController.forward().then((_) {
@@ -133,8 +136,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
       });
     });
 
-    // Periodic chromatic glitch twitches after impact
-    _glitchTimer = Timer.periodic(const Duration(milliseconds: 750), (timer) {
+    // Subtle micro glitch jitter every 850ms after impact
+    _glitchTimer = Timer.periodic(const Duration(milliseconds: 850), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -142,9 +145,9 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
       if (_impactController.value > 0.5) {
         final r = math.Random();
         setState(() {
-          _glitchOffset = Offset((r.nextDouble() - 0.5) * 5.0, (r.nextDouble() - 0.5) * 2.5);
+          _glitchOffset = Offset((r.nextDouble() - 0.5) * 3.5, (r.nextDouble() - 0.5) * 2.0);
         });
-        Future.delayed(const Duration(milliseconds: 80), () {
+        Future.delayed(const Duration(milliseconds: 70), () {
           if (mounted) {
             setState(() {
               _glitchOffset = Offset.zero;
@@ -153,25 +156,11 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
         });
       }
     });
-
-    // Auto progress over 4.2 seconds
-    _ticker = Timer.periodic(const Duration(milliseconds: 35), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() {
-        _progress = (_progress + 0.009).clamp(0.0, 1.0);
-      });
-      if (_progress >= 1.0) {
-        timer.cancel();
-        _skip();
-      }
-    });
   }
 
   void _skip() {
-    _ticker?.cancel();
+    if (_isTransitioning) return;
+    _isTransitioning = true;
     _glitchTimer?.cancel();
     stopSplashAudioNative();
     widget.onCompleted();
@@ -179,21 +168,20 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
 
   @override
   void dispose() {
-    _ticker?.cancel();
     _glitchTimer?.cancel();
     stopSplashAudioNative();
     _traceController.dispose();
     _impactController.dispose();
     _brandController.dispose();
     _ambientPulseController.dispose();
-    _glitchController.dispose();
+    _progressController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07080C),
+      backgroundColor: const Color(0xFF07080C), // Deep pitch black OLED background
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _skip,
@@ -201,61 +189,53 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
           fit: StackFit.expand,
           children: [
             // -----------------------------------------------------------
-            // 1. Immersive Deep Radial Ambient Aura (No hard circular edges)
+            // 1. Soft Ambient Background Bloom (CSS BoxShadow, Zero Grey Box)
             // -----------------------------------------------------------
-            AnimatedBuilder(
-              animation: _ambientPulseController,
-              builder: (context, _) {
-                final breath = 0.85 + 0.25 * _ambientPulseController.value;
-                return Center(
-                  child: Container(
-                    width: 480 * breath,
-                    height: 480 * breath,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          const Color(0xFFFE2C55).withOpacity(0.14),
-                          const Color(0xFF00F2FE).withOpacity(0.10),
-                          const Color(0xFF07080C).withOpacity(0.0),
-                        ],
-                        stops: const [0.0, 0.45, 1.0],
-                      ),
+            Center(
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.transparent,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00F2FE).withOpacity(0.08),
+                      blurRadius: 90,
+                      spreadRadius: 15,
                     ),
-                  ),
-                );
-              },
+                    BoxShadow(
+                      color: const Color(0xFFFE2C55).withOpacity(0.08),
+                      blurRadius: 90,
+                      spreadRadius: 15,
+                    ),
+                  ],
+                ),
+              ),
             ),
 
             // -----------------------------------------------------------
-            // 2. Floating Cyberpunk Micro Embers (Drifting upwards)
+            // 2. Floating Cyberpunk Micro Embers
             // -----------------------------------------------------------
-            ...List.generate(12, (i) {
-              final angle = i * (math.pi / 6);
+            ...List.generate(10, (i) {
+              final angle = i * (math.pi / 5);
               return AnimatedBuilder(
                 animation: _ambientPulseController,
                 builder: (context, _) {
                   final t = _ambientPulseController.value;
-                  final dist = 120.0 + 35.0 * math.sin(t * math.pi * 2 + i * 0.7);
-                  final dx = dist * math.cos(angle + t * 0.4);
-                  final dy = dist * math.sin(angle + t * 0.4) - (t * 20);
+                  final dist = 115.0 + 30.0 * math.sin(t * math.pi * 2 + i * 0.8);
+                  final dx = dist * math.cos(angle + t * 0.3);
+                  final dy = dist * math.sin(angle + t * 0.3) - (t * 18);
                   final isCyan = i % 2 == 0;
                   return Center(
                     child: Transform.translate(
                       offset: Offset(dx, dy),
                       child: Container(
-                        width: isCyan ? 3.5 : 2.5,
-                        height: isCyan ? 3.5 : 2.5,
+                        width: isCyan ? 3.0 : 2.2,
+                        height: isCyan ? 3.0 : 2.2,
                         decoration: BoxDecoration(
                           color: isCyan ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
                           shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: isCyan ? const Color(0xFF00F2FE) : const Color(0xFFFE2C55),
-                              blurRadius: 8,
-                              spreadRadius: 1.5,
-                            ),
-                          ],
                         ),
                       ),
                     ),
@@ -265,7 +245,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
             }),
 
             // -----------------------------------------------------------
-            // 3. Erupting Burst Particles on Impact
+            // 3. Radial Particle Eruption Blast on Impact
             // -----------------------------------------------------------
             AnimatedBuilder(
               animation: _impactController,
@@ -292,13 +272,6 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                             decoration: BoxDecoration(
                               color: p.color,
                               shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: p.color,
-                                  blurRadius: 6,
-                                  spreadRadius: 1,
-                                ),
-                              ],
                             ),
                           ),
                         ),
@@ -310,7 +283,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
             ),
 
             // -----------------------------------------------------------
-            // 4. Center Stage: Dynamic SH Logo & Branding
+            // 4. Center Emblem & Brand Typography
             // -----------------------------------------------------------
             Center(
               child: AnimatedBuilder(
@@ -321,7 +294,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                   _ambientPulseController,
                 ]),
                 builder: (context, _) {
-                  final glow = 0.90 + 0.30 * _ambientPulseController.value;
+                  final glow = 0.90 + 0.25 * _ambientPulseController.value;
                   return Transform.scale(
                     scale: _scaleAnimation.value,
                     child: Column(
@@ -342,9 +315,9 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                             ),
                           ),
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 26),
 
-                        // "SOCIAL HUB" Title with Dual Chromatic Glitch Shadows
+                        // Brand Title & Slogan
                         Opacity(
                           opacity: _brandFade.value,
                           child: Transform.translate(
@@ -362,13 +335,13 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                                     shadows: [
                                       Shadow(
                                         offset: Offset(-2.5 + _glitchOffset.dx * 0.6, -1.2),
-                                        color: const Color(0xFF00F2FE).withOpacity(0.90),
-                                        blurRadius: 10,
+                                        color: const Color(0xFF00F2FE).withOpacity(0.85),
+                                        blurRadius: 8,
                                       ),
                                       Shadow(
                                         offset: Offset(2.8 + _glitchOffset.dx * 0.6, 1.6),
-                                        color: const Color(0xFFFE2C55).withOpacity(0.90),
-                                        blurRadius: 10,
+                                        color: const Color(0xFFFE2C55).withOpacity(0.85),
+                                        blurRadius: 8,
                                       ),
                                     ],
                                   ),
@@ -393,14 +366,14 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF00F2FE).withOpacity(0.7),
-                                        blurRadius: 8,
-                                        spreadRadius: 1,
+                                        color: const Color(0xFF00F2FE).withOpacity(0.6),
+                                        blurRadius: 6,
+                                        spreadRadius: 0.5,
                                       ),
                                       BoxShadow(
-                                        color: const Color(0xFFFE2C55).withOpacity(0.7),
-                                        blurRadius: 8,
-                                        spreadRadius: 1,
+                                        color: const Color(0xFFFE2C55).withOpacity(0.6),
+                                        blurRadius: 6,
+                                        spreadRadius: 0.5,
                                       ),
                                     ],
                                   ),
@@ -429,36 +402,41 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
             ),
 
             // -----------------------------------------------------------
-            // 5. Sleek Minimalist Bottom Progress Indicator & Skip Prompt
+            // 5. Minimalist 60 FPS Bottom Progress Line & Tap Prompt
             // -----------------------------------------------------------
             Positioned(
-              left: 40,
-              right: 40,
+              left: 44,
+              right: 44,
               bottom: 48,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: SizedBox(
-                      height: 3,
-                      child: LinearProgressIndicator(
-                        value: _progress,
-                        backgroundColor: Colors.white10,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00F2FE)),
+              child: AnimatedBuilder(
+                animation: _progressController,
+                builder: (context, _) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: SizedBox(
+                          height: 2.5,
+                          child: LinearProgressIndicator(
+                            value: _progressController.value,
+                            backgroundColor: Colors.white10,
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00F2FE)),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Ketuk untuk langsung masuk',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.white.withOpacity(0.40),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
+                      const SizedBox(height: 12),
+                      Text(
+                        'Ketuk untuk langsung masuk',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.38),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],

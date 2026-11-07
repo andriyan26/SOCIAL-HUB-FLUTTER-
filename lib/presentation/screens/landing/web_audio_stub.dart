@@ -5,3 +5,4 @@ void playSplashAudioNative() {
 void stopSplashAudioNative() {
   // Stub for non-web platforms
 }
+

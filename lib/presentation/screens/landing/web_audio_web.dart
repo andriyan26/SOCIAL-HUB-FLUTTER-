@@ -26,3 +26,4 @@ void stopSplashAudioNative() {
     _splashAudio = null;
   } catch (_) {}
 }
+
