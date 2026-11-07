@@ -4,7 +4,7 @@ import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
-import 'package:social_hub/data/models/post_model.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'widgets/rotating_music_disc.dart';
 import 'widgets/comments_sheet.dart';
@@ -45,7 +45,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _onDoubleTap(TapDownDetails details, PostModel post) {
+  void _onDoubleTap(TapDownDetails details, PostEntity post) {
     AppAudioService.instance.playPopSound();
     setState(() {
       _heartPositions.add(details.localPosition);
@@ -168,10 +168,10 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     }
 
     // Default rich fallback posts if empty
-    final displayPosts = posts.isNotEmpty
+    final List<PostEntity> displayPosts = posts.isNotEmpty
         ? posts
         : [
-            PostModel(
+            PostEntity(
               id: 1,
               userId: 2,
               authorName: 'Aurelie Hermansyah',
@@ -190,7 +190,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               thumbnailPath: AppAssets.imgFeed,
               createdAt: 'Hari ini',
             ),
-            PostModel(
+            PostEntity(
               id: 2,
               userId: 1,
               authorName: 'Andrian Pei',
@@ -209,7 +209,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               thumbnailPath: AppAssets.imgProfile,
               createdAt: 'Kemarin',
             ),
-            PostModel(
+            PostEntity(
               id: 3,
               userId: 3,
               authorName: 'ei.kaa🍭',
@@ -380,7 +380,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildFeedItem(PostModel post, FeedProvider feedProvider) {
+  Widget _buildFeedItem(PostEntity post, FeedProvider feedProvider) {
     final currentPostInState = feedProvider.posts.firstWhere(
       (p) => p.id == post.id,
       orElse: () => post,

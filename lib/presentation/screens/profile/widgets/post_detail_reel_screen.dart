@@ -4,14 +4,14 @@ import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
-import 'package:social_hub/data/models/post_model.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/comments_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/share_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/rotating_music_disc.dart';
 
 class PostDetailReelScreen extends StatefulWidget {
-  final List<PostModel> posts;
+  final List<PostEntity> posts;
   final int initialIndex;
 
   const PostDetailReelScreen({
@@ -42,7 +42,7 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
     super.dispose();
   }
 
-  void _onDoubleTap(TapDownDetails details, PostModel post) {
+  void _onDoubleTap(TapDownDetails details, PostEntity post) {
     AppAudioService.instance.playPopSound();
     setState(() {
       _heartPositions.add(details.localPosition);
@@ -64,7 +64,7 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
   @override
   Widget build(BuildContext context) {
     final posts = widget.posts.isNotEmpty ? widget.posts : [
-      PostModel(
+      PostEntity(
         id: 1,
         userId: 1,
         authorName: 'Andrian Pei',
@@ -104,7 +104,7 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
     );
   }
 
-  Widget _buildReelItem(PostModel post) {
+  Widget _buildReelItem(PostEntity post) {
     final feedProvider = context.watch<FeedProvider>();
     final currentPostInState = feedProvider.posts.firstWhere(
       (p) => p.id == post.id,
