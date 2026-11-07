@@ -9,6 +9,8 @@ import 'package:social_hub/presentation/providers/camera_provider.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'webcam_preview.dart';
+import 'web_file_picker.dart';
 
 class CameraStudioScreen extends StatefulWidget {
   final VoidCallback? onClose;
@@ -31,13 +33,15 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
   int _timerCountdown = 0;
   Timer? _countdownTimer;
   bool _showFlash = false;
-  bool _showFiltersDrawer = false;
-  bool _isBeautyOn = false;
+  bool _isBeautyOn = true;
+  int _timerSetting = 0; // 0: off, 3: 3s, 10: 10s
 
+  // 5 Aesthetic Real-Time Beauty & Color Filters (Matching Gambar 1)
   final List<Map<String, dynamic>> _filtersList = [
     {
       'id': 0,
       'name': 'Normal',
+      'label': 'Asli',
       'matrix': <double>[
         1, 0, 0, 0, 0,
         0, 1, 0, 0, 0,
@@ -49,11 +53,12 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     },
     {
       'id': 1,
-      'name': 'Natural Creamy',
+      'name': 'Glamour Glow',
+      'label': 'Glamour',
       'matrix': <double>[
-        1.12, 0, 0, 0, 15,
-        0, 1.05, 0, 0, 12,
-        0, 0, 0.92, 0, -5,
+        1.15, 0, 0, 0, 18,
+        0, 1.08, 0, 0, 12,
+        0, 0, 0.94, 0, -4,
         0, 0, 0, 1, 0,
       ],
       'color': const Color(0xFFFBBF24),
@@ -61,39 +66,42 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     },
     {
       'id': 2,
-      'name': 'Cyberpunk',
+      'name': 'Golden Sun',
+      'label': 'Golden',
       'matrix': <double>[
-        1.25, 0, 0, 0, 20,
-        0, 0.9, 0, 0, -10,
-        0, 0, 1.35, 0, 30,
+        1.22, 0, 0, 0, 22,
+        0, 1.02, 0, 0, 10,
+        0, 0, 0.85, 0, -15,
         0, 0, 0, 1, 0,
       ],
-      'color': const Color(0xFF00F2FE),
-      'avatar': AppAssets.imgFriends,
+      'color': const Color(0xFFF59E0B),
+      'avatar': AppAssets.imgProfile,
     },
     {
       'id': 3,
-      'name': 'Vintage 90s',
+      'name': 'Soft Hijab Chic',
+      'label': 'Soft Chic',
       'matrix': <double>[
-        0.393, 0.769, 0.189, 0, 0,
-        0.349, 0.686, 0.168, 0, 0,
-        0.272, 0.534, 0.131, 0, 0,
+        1.05, 0, 0, 0, 10,
+        0, 1.12, 0, 0, 14,
+        0, 0, 1.18, 0, 18,
         0, 0, 0, 1, 0,
       ],
-      'color': const Color(0xFFD97706),
-      'avatar': AppAssets.imgInbox,
+      'color': const Color(0xFF20D5EC),
+      'avatar': AppAssets.imgFriends,
     },
     {
       'id': 4,
-      'name': 'Monochrome B&W',
+      'name': 'Rosy Glam',
+      'label': 'Rosy Pink',
       'matrix': <double>[
-        0.33, 0.33, 0.33, 0, 0,
-        0.33, 0.33, 0.33, 0, 0,
-        0.33, 0.33, 0.33, 0, 0,
+        1.24, 0, 0, 0, 25,
+        0, 0.96, 0, 0, -6,
+        0, 0, 1.15, 0, 15,
         0, 0, 0, 1, 0,
       ],
-      'color': Colors.white,
-      'avatar': AppAssets.imgProfile,
+      'color': const Color(0xFFEC4899),
+      'avatar': AppAssets.imgInbox,
     },
   ];
 
@@ -122,6 +130,16 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
   void _triggerShutterAction(CameraProvider camera) {
     if (_timerCountdown > 0) return;
 
+    if (_timerSetting > 0) {
+      _startTimerCountdown(_timerSetting, () {
+        _executeCaptureOrRecord(camera);
+      });
+    } else {
+      _executeCaptureOrRecord(camera);
+    }
+  }
+
+  void _executeCaptureOrRecord(CameraProvider camera) {
     if (camera.durationMode == CameraDurationMode.foto) {
       _executePhotoCapture(camera);
     } else {
@@ -163,6 +181,37 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     });
   }
 
+  void _toggleFlipCamera(CameraProvider camera) {
+    AppAudioService.instance.playPopSound();
+    camera.toggleCameraFacing();
+    _flipAnimationController.forward(from: 0.0);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(camera.isFrontCamera ? 'Kamera Depan Aktif 🤳' : 'Kamera Belakang Aktif 📷'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _cycleTimer() {
+    AppAudioService.instance.playPopSound();
+    setState(() {
+      if (_timerSetting == 0) {
+        _timerSetting = 3;
+      } else if (_timerSetting == 3) {
+        _timerSetting = 10;
+      } else {
+        _timerSetting = 0;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_timerSetting > 0 ? 'Timer Diatur ke ${_timerSetting} Detik ⏱️' : 'Timer Dinonaktifkan'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final camera = context.watch<CameraProvider>();
@@ -173,7 +222,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Clean, High-Fidelity Camera Viewfinder (NO fake burnt-in UI buttons)
+          // 1. Live Camera Feed (Webcam Stream + Fallback Simulated Viewfinder)
           AnimatedBuilder(
             animation: _flipAnimationController,
             builder: (context, child) {
@@ -188,14 +237,20 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Camera Lens Sensor Simulation Background
+                      // A. Real HTML5 Webcam Live Video Stream
+                      WebcamPreviewWidget(
+                        isFrontCamera: camera.isFrontCamera,
+                        isMirrored: camera.isFrontCamera,
+                      ),
+
+                      // B. Lens Depth & Studio Ambient Fallback
                       Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Color(0xFF0F172A),
-                              Color(0xFF050811),
-                              Color(0xFF000000),
+                              Colors.black.withOpacity(0.35),
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.65),
                             ],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
@@ -203,30 +258,42 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                         ),
                       ),
 
-                      // Optional Camera Feed / Lens Depth Texture
+                      // C. Dynamic Studio Reticle / Focus Center Box
                       Center(
-                        child: Opacity(
-                          opacity: 0.18,
-                          child: Container(
-                            width: 280,
-                            height: 280,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white24, width: 1.5),
-                            ),
+                        child: Container(
+                          width: 220,
+                          height: 220,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white12, width: 1.0),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        ),
-                      ),
-
-                      // Camera Vignette for Depth
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.65),
+                          child: Stack(
+                            children: [
+                              // Top-Left bracket
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                child: Container(width: 16, height: 16, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFF20D5EC), width: 2), left: BorderSide(color: Color(0xFF20D5EC), width: 2)))),
+                              ),
+                              // Top-Right bracket
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Container(width: 16, height: 16, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFF20D5EC), width: 2), right: BorderSide(color: Color(0xFF20D5EC), width: 2)))),
+                              ),
+                              // Bottom-Left bracket
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                child: Container(width: 16, height: 16, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF20D5EC), width: 2), left: BorderSide(color: Color(0xFF20D5EC), width: 2)))),
+                              ),
+                              // Bottom-Right bracket
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(width: 16, height: 16, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF20D5EC), width: 2), right: BorderSide(color: Color(0xFF20D5EC), width: 2)))),
+                              ),
                             ],
-                            radius: 0.95,
                           ),
                         ),
                       ),
@@ -250,48 +317,66 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
               child: Container(color: Colors.white),
             ),
 
-          // 4. Timer Countdown Overlay (3.. 2.. 1..)
+          // 4. Timer Countdown Overlay Animation (3, 2, 1)
           if (_timerCountdown > 0)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.55),
-                child: Center(
-                  child: Text(
-                    '$_timerCountdown',
-                    style: const TextStyle(
-                      fontSize: 120,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(color: AppColors.primary, blurRadius: 40),
-                        Shadow(color: Colors.black, blurRadius: 10),
-                      ],
+            Center(
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(_timerCountdown),
+                tween: Tween(begin: 1.5, end: 1.0),
+                duration: const Duration(milliseconds: 300),
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.65),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primary, width: 3),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$_timerCountdown',
+                          style: const TextStyle(
+                            fontSize: 64,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
 
-          // 5. Recording Progress Bar (When Recording)
+          // 5. Recording Progress Bar at the Top (Red Bar filling up)
           if (camera.isRecording)
             Positioned(
               top: 0,
               left: 0,
               right: 0,
               child: SafeArea(
-                top: true,
-                bottom: false,
-                child: LinearProgressIndicator(
-                  value: camera.recordedSeconds /
-                      (camera.durationMode == CameraDurationMode.fifteenSec ? 15.0 : 60.0),
-                  backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  minHeight: 4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: camera.recordedSeconds /
+                          (camera.durationMode == CameraDurationMode.fifteenSec
+                              ? 15.0
+                              : (camera.durationMode == CameraDurationMode.sixtySec ? 60.0 : 600.0)),
+                      backgroundColor: Colors.white24,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      minHeight: 4,
+                    ),
+                  ),
                 ),
               ),
             ),
 
-          // 6. Top Bar (Close '✕' on Left, '♫ Tambah suara' in Center)
+          // 6. Top Bar: [✕ Close Button] and [♫ Tambah suara] Centered Pill
           Positioned(
             top: 0,
             left: 0,
@@ -300,7 +385,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
               top: true,
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -308,40 +393,50 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () {
+                        AppAudioService.instance.playPopSound();
                         if (widget.onClose != null) {
                           widget.onClose!();
                         } else {
-                          Navigator.maybePop(context);
+                          Navigator.pop(context);
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(4),
-                        child: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.35),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white, size: 22),
                       ),
                     ),
 
-                    // "♫ Tambah suara" Capsule
+                    // Centered Music Pill '♫ Tambah suara'
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => _showSoundSelector(context),
+                      onTap: () => _showSoundPicker(context, camera),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6.5),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.48),
+                          color: Colors.black.withOpacity(0.45),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white24, width: 0.7),
+                          border: Border.all(color: Colors.white12, width: 0.8),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.music_note, color: Colors.white, size: 15),
                             const SizedBox(width: 6),
-                            Text(
-                              camera.selectedSound,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 160),
+                              child: Text(
+                                camera.selectedSound,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -349,190 +444,94 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                       ),
                     ),
 
-                    // Invisible spacer for balance
-                    const SizedBox(width: 32),
+                    // Placeholder to balance the row
+                    const SizedBox(width: 38),
                   ],
                 ),
               ),
             ),
           ),
 
-          // 7. Right Side Tool Column (7 Icons matching Gambar 1 Reference)
+          // 7. Right Vertical Tool Bar (Flip, Flash, Timer, Grid, Beauty, Voice, Expand)
           Positioned(
-            top: 54,
-            right: 14,
+            top: 60,
+            right: 12,
             child: SafeArea(
               top: true,
               bottom: false,
               child: Column(
                 children: [
-                  // 1. Flip Camera (Putar Kamera)
-                  _buildToolIcon(
-                    icon: Icons.flip_camera_ios_rounded,
-                    onTap: () {
-                      AppAudioService.instance.playChimeSound();
-                      camera.toggleCameraFacing();
-                      if (_flipAnimationController.isCompleted) {
-                        _flipAnimationController.reverse();
-                      } else {
-                        _flipAnimationController.forward();
-                      }
-                    },
+                  _buildToolButton(
+                    icon: Icons.flip_camera_ios_outlined,
+                    label: 'Balik',
+                    onTap: () => _toggleFlipCamera(camera),
                   ),
-                  const SizedBox(height: 18),
-
-                  // 2. Flash / Blitz
-                  _buildToolIcon(
+                  const SizedBox(height: 16),
+                  _buildToolButton(
                     icon: camera.isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                    label: camera.isFlashOn ? 'Nyala' : 'Lampu',
                     color: camera.isFlashOn ? const Color(0xFFFBBF24) : Colors.white,
                     onTap: () {
+                      AppAudioService.instance.playChimeSound();
                       camera.toggleFlash();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(camera.isFlashOn ? 'Flash Kamera: AKTIF ⚡' : 'Flash Kamera: NONAKTIF'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
-
-                  // 3. Timer (Hitung Mundur)
-                  _buildToolIcon(
-                    icon: Icons.timer_outlined,
-                    color: _timerCountdown > 0 ? AppColors.primary : Colors.white,
-                    onTap: () {
-                      _startTimerCountdown(3, () {
-                        _triggerShutterAction(camera);
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 18),
-
-                  // 4. Composition Grid (Garis Kisi 3x3)
-                  _buildToolIcon(
-                    icon: Icons.grid_view_rounded,
-                    color: camera.isGridOn ? AppColors.cyan : Colors.white,
-                    onTap: () {
-                      camera.toggleGrid();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(camera.isGridOn ? 'Garis Kisi 3x3: AKTIF' : 'Garis Kisi 3x3: NONAKTIF'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
-
-                  // 5. Beautify / Percantik
-                  _buildToolIcon(
-                    icon: Icons.face_retouching_natural_rounded,
-                    color: _isBeautyOn ? const Color(0xFFFE2C55) : Colors.white,
-                    onTap: () {
-                      setState(() => _isBeautyOn = !_isBeautyOn);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(_isBeautyOn ? 'Mode Cantik (Skin Smooth): AKTIF ✨' : 'Mode Cantik: NONAKTIF'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
-
-                  // 6. Filters / Efek Warna
-                  _buildToolIcon(
-                    icon: Icons.auto_awesome_rounded,
-                    color: _showFiltersDrawer ? AppColors.primary : Colors.white,
-                    onTap: () {
-                      setState(() {
-                        _showFiltersDrawer = !_showFiltersDrawer;
-                      });
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // 7. Expand Chevron
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                  _buildToolButton(
+                    icon: _timerSetting > 0 ? Icons.timer_outlined : Icons.timer_off_outlined,
+                    label: _timerSetting > 0 ? '${_timerSetting}d' : 'Waktu',
+                    color: _timerSetting > 0 ? const Color(0xFF20D5EC) : Colors.white,
+                    onTap: _cycleTimer,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildToolButton(
+                    icon: Icons.grid_on_rounded,
+                    label: 'Kisi',
+                    color: camera.isGridOn ? const Color(0xFF20D5EC) : Colors.white,
+                    onTap: () {
+                      AppAudioService.instance.playPopSound();
+                      camera.toggleGrid();
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildToolButton(
+                    icon: Icons.face_retouching_natural,
+                    label: 'Cantik',
+                    color: _isBeautyOn ? const Color(0xFFEC4899) : Colors.white,
+                    onTap: () {
+                      AppAudioService.instance.playChimeSound();
+                      setState(() => _isBeautyOn = !_isBeautyOn);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_isBeautyOn ? 'Mode Cantik & Retouch Aktif ✨' : 'Mode Cantik Dinonaktifkan'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildToolButton(
+                    icon: Icons.mic_none_outlined,
+                    label: 'Suara',
+                    onTap: () {
+                      AppAudioService.instance.playPopSound();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Efek Mikrofon Studio & Pengurang Bising Aktif 🎙️')),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildToolButton(
+                    icon: Icons.keyboard_arrow_down,
+                    label: '',
                     onTap: () => _showExtraSettings(context),
-                    child: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70, size: 26),
                   ),
                 ],
               ),
             ),
           ),
 
-          // 8. Sliding Filter Bar Drawer (When Toggled)
-          if (_showFiltersDrawer)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 175,
-              child: Container(
-                height: 72,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.78),
-                  border: const Border(
-                    top: BorderSide(color: Colors.white12),
-                    bottom: BorderSide(color: Colors.white12),
-                  ),
-                ),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _filtersList.length,
-                  itemBuilder: (context, idx) {
-                    final f = _filtersList[idx];
-                    final isSelected = camera.activeFilterIndex == idx;
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        camera.setFilterIndex(idx);
-                        AppAudioService.instance.playPopSound();
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isSelected ? (f['color'] as Color).withOpacity(0.3) : Colors.white10,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected ? (f['color'] as Color) : Colors.white24,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: f['color'] as Color,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            Text(
-                              f['name'],
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.white70,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-          // 9. Bottom Controls Section (Duration, Shutter with Filter Bubbles, and Modes)
+          // 8. Bottom Controls Section (Duration, Shutter with 4 Filter Bubbles, Gallery, Modes)
           Positioned(
             left: 0,
             right: 0,
@@ -543,7 +542,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // A. Duration Selector Row: 10 mnt | 60 detik | 15 detik | FOTO | TEKS
+                  // A. Duration Selector Row: 10 mnt | 60 detik | [ 15 detik ] | FOTO | TEKS
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -561,35 +560,51 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
 
                   // B. Shutter Row flanked by Gallery and Filter Bubbles (Matching Gambar 1)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Gallery Upload Button (Bottom Left)
+                        // Stacked Gallery Button (Bottom Left) -> directly triggers native file picker or gallery
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => _showGalleryPicker(context, camera),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white, width: 2),
-                              image: const DecorationImage(
-                                image: AssetImage(AppAssets.imgAndrianPoster),
-                                fit: BoxFit.cover,
+                          onTap: () => _showGallerySheet(context, camera),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Stack card shadow
+                              Container(
+                                width: 38,
+                                height: 38,
+                                transform: Matrix4.translationValues(4, -3, 0)..rotateZ(0.08),
+                                decoration: BoxDecoration(
+                                  color: Colors.white24,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                            ),
+                              // Front gallery card
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white, width: 1.8),
+                                  image: const DecorationImage(
+                                    image: AssetImage(AppAssets.imgAndrianPoster),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
 
-                        // Filter Circle 1
+                        // Filter Circle 1 (Glamour Glow)
                         _buildFaceFilterBubble(1, camera),
-                        // Filter Circle 2
+                        // Filter Circle 2 (Golden Sun)
                         _buildFaceFilterBubble(2, camera),
 
-                        // Center Shutter Button (TikTok Red Button with Outer Ring)
+                        // Center Shutter Button (TikTok Red Button with Outer White Ring)
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () => _triggerShutterAction(camera),
@@ -600,8 +615,8 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                               return Transform.scale(
                                 scale: scale,
                                 child: Container(
-                                  width: 82,
-                                  height: 82,
+                                  width: 80,
+                                  height: 80,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
@@ -612,11 +627,11 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                                   child: Center(
                                     child: Container(
                                       width: camera.isRecording
-                                          ? 38
-                                          : (camera.durationMode == CameraDurationMode.foto ? 66 : 68),
+                                          ? 36
+                                          : (camera.durationMode == CameraDurationMode.foto ? 64 : 66),
                                       height: camera.isRecording
-                                          ? 38
-                                          : (camera.durationMode == CameraDurationMode.foto ? 66 : 68),
+                                          ? 36
+                                          : (camera.durationMode == CameraDurationMode.foto ? 64 : 66),
                                       decoration: BoxDecoration(
                                         color: camera.durationMode == CameraDurationMode.foto
                                             ? Colors.white
@@ -632,9 +647,9 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                           ),
                         ),
 
-                        // Filter Circle 3
+                        // Filter Circle 3 (Soft Hijab Chic)
                         _buildFaceFilterBubble(3, camera),
-                        // Filter Circle 4
+                        // Filter Circle 4 (Rosy Glam)
                         _buildFaceFilterBubble(4, camera),
                       ],
                     ),
@@ -662,27 +677,41 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     );
   }
 
-  Widget _buildToolIcon({
+  Widget _buildToolButton({
     required IconData icon,
-    Color color = Colors.white,
+    required String label,
     required VoidCallback onTap,
+    Color color = Colors.white,
   }) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        child: Icon(
-          icon,
-          color: color,
-          size: 25,
-          shadows: const [Shadow(color: Colors.black87, blurRadius: 4)],
-        ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 26,
+            shadows: const [Shadow(color: Colors.black87, blurRadius: 4)],
+          ),
+          if (label.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _buildDurationItem(CameraDurationMode mode, String title, CameraProvider camera) {
+  Widget _buildDurationItem(CameraDurationMode mode, String label, CameraProvider camera) {
     final isSelected = camera.durationMode == mode;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -691,53 +720,68 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
         camera.setDurationMode(mode);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.5),
         margin: const EdgeInsets.symmetric(horizontal: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
-          title,
+          label,
           style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            color: isSelected ? Colors.black : Colors.white.withOpacity(0.75),
+            color: isSelected ? Colors.black : Colors.white70,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFaceFilterBubble(int index, CameraProvider camera) {
-    final isSelected = camera.activeFilterIndex == index;
-    final f = _filtersList[index % _filtersList.length];
-    final avatar = f['avatar'] as String;
+  Widget _buildFaceFilterBubble(int filterIndex, CameraProvider camera) {
+    final filter = _filtersList[filterIndex % _filtersList.length];
+    final isSelected = camera.activeFilterIndex == filterIndex;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        camera.setFilterIndex(index);
         AppAudioService.instance.playPopSound();
+        camera.setFilterIndex(filterIndex);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Filter ${f['name']} Diterapkan ✨'), duration: const Duration(milliseconds: 800)),
+          SnackBar(
+            content: Text('✨ Filter Aktif: ${filter['name']}'),
+            duration: const Duration(milliseconds: 900),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       },
       child: Container(
-        width: 38,
-        height: 38,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: isSelected ? Colors.white : Colors.white38,
+            color: isSelected ? const Color(0xFF20D5EC) : Colors.white24,
             width: isSelected ? 2.5 : 1.2,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF20D5EC).withOpacity(0.5),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : null,
         ),
         child: ClipOval(
           child: Image.asset(
-            avatar,
+            filter['avatar'] as String,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(color: f['color'] as Color),
+            errorBuilder: (_, __, ___) => Container(
+              color: filter['color'] as Color,
+              child: const Icon(Icons.face, color: Colors.white, size: 20),
+            ),
           ),
         ),
       ),
@@ -749,53 +793,82 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
+        AppAudioService.instance.playPopSound();
         camera.setBottomTab(tab);
         if (tab == CameraBottomTab.live) {
-          _showLiveBroadcastModal(context);
+          _showLiveStartModal(context);
         }
       },
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 13.5,
-          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           color: isSelected ? Colors.white : Colors.white54,
+          fontSize: 13,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
           letterSpacing: 0.8,
         ),
       ),
     );
   }
 
-  void _showLiveBroadcastModal(BuildContext context) {
+  void _showSoundPicker(BuildContext context, CameraProvider camera) {
+    final sounds = [
+      '♫ Sound Wisuda Bangga (Original) - andrianpei',
+      '♫ Anak Kampung (Remix) - Aurel',
+      '♫ Beat Aesthetic Viral 2026 - DJ Mengkane',
+      '♫ Pop Up Glow - TikTok Trending',
+      '♫ Cinematic Vlog Chill - Lo-Fi Beats',
+    ];
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E24),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Pilih Musik Latar', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ...sounds.map((sound) => ListTile(
+              leading: const Icon(Icons.music_note, color: AppColors.primary),
+              title: Text(sound, style: const TextStyle(color: Colors.white, fontSize: 13.5)),
+              trailing: camera.selectedSound == sound ? const Icon(Icons.check, color: AppColors.cyan) : null,
+              onTap: () {
+                AppAudioService.instance.playChimeSound();
+                camera.setSound(sound);
+                Navigator.pop(context);
+              },
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLiveStartModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.sensors, color: AppColors.primary, size: 24),
-                SizedBox(width: 8),
-                Text('Siaran Langsung LIVE', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
-              ],
-            ),
+            const Icon(Icons.sensors, color: AppColors.primary, size: 48),
             const SizedBox(height: 12),
-            const Text(
-              'Mulai siaran langsung untuk berinteraksi langsung dengan pengikut Anda secara real-time!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            ),
+            const Text('Mulai Siaran LIVE Social Hub', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            const Text('Interaksi langsung dengan penonton, dapatkan hadiah dan bangun komunitas Anda!', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12.5)),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              height: 46,
+              height: 44,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23))),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
                 onPressed: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -845,50 +918,164 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     );
   }
 
-  void _showGalleryPicker(BuildContext context, CameraProvider camera) {
-    final galleryImages = [
-      AppAssets.imgAndrianPoster,
-      AppAssets.imgFeed,
-      AppAssets.imgFriends,
-      AppAssets.imgProfile,
-      AppAssets.imgInbox,
-    ];
-
+  void _showGallerySheet(BuildContext context, CameraProvider camera) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E24),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
       builder: (_) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Pilih Foto / Video dari Galeri', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Unggah Media dari Galeri', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 1.0,
+
+            // Button to trigger Real File Dialog (Desktop & Phone files)
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF20D5EC),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.file_upload_outlined, color: Colors.black),
+                label: const Text('Pilih File Video/Foto dari Perangkat', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13.5)),
+                onPressed: () {
+                  Navigator.pop(context);
+                  pickMediaFileNative(
+                    onSelected: (fileName, objectUrl, isVideo) {
+                      _showPublishDialog(
+                        context,
+                        camera,
+                        isVideo: isVideo,
+                        selectedVideoUrl: objectUrl,
+                        customFileName: fileName,
+                      );
+                    },
+                  );
+                },
               ),
-              itemCount: galleryImages.length,
-              itemBuilder: (context, idx) {
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showPublishDialog(context, camera, isVideo: false, selectedThumb: galleryImages[idx]);
-                  },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(galleryImages[idx], fit: BoxFit.cover),
+            ),
+            const SizedBox(height: 18),
+            const Text('Atau Pilih Media Cepat:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+            const SizedBox(height: 10),
+
+            // Quick Presets
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showPublishDialog(
+                        context,
+                        camera,
+                        isVideo: true,
+                        selectedThumb: AppAssets.imgAndrianPoster,
+                        selectedVideoUrl: AppAssets.videoAndrian,
+                        initialCaption: 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik! #wisuda #unpam',
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141418),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(AppAssets.imgAndrianPoster, height: 60, width: double.infinity, fit: BoxFit.cover),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text('Andrian.MOV\n(Video Wisuda)', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
                   ),
-                );
-              },
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showPublishDialog(
+                        context,
+                        camera,
+                        isVideo: true,
+                        selectedThumb: AppAssets.imgFeed,
+                        selectedVideoUrl: AppAssets.videoLanding,
+                        initialCaption: 'Keseruan dance viral hari ini ✨👯‍♀️ #trending #tiktok',
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141418),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(AppAssets.imgFeed, height: 60, width: double.infinity, fit: BoxFit.cover),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text('Dance Viral\n(Video TikTok)', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showPublishDialog(
+                        context,
+                        camera,
+                        isVideo: false,
+                        selectedThumb: AppAssets.imgProfile,
+                        initialCaption: 'Foto studio portrait Social Hub ✨ #photoshoot',
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141418),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(AppAssets.imgProfile, height: 60, width: double.infinity, fit: BoxFit.cover),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text('Studio Portrait\n(Foto HD)', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -896,19 +1083,28 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     );
   }
 
-  void _showPublishDialog(BuildContext context, CameraProvider camera, {required bool isVideo, String? selectedThumb}) {
-    final captionController = TextEditingController(
-      text: isVideo
-          ? 'Momen seru studio Social Hub hari ini! 🚀 #socialhub #fyp #viral'
-          : 'Hasil jepretan studio kamera terbaru! ✨ #aesthetic #photo',
-    );
+  void _showPublishDialog(
+    BuildContext context,
+    CameraProvider camera, {
+    required bool isVideo,
+    String? selectedThumb,
+    String? selectedVideoUrl,
+    String? customFileName,
+    String? initialCaption,
+  }) {
+    final defaultCaption = initialCaption ?? (isVideo
+        ? 'Momen seru studio Social Hub hari ini! 🚀 #socialhub #fyp #viral'
+        : 'Hasil jepretan studio kamera terbaru! ✨ #aesthetic #photo');
+
+    final captionController = TextEditingController(text: defaultCaption);
     final thumb = selectedThumb ?? (isVideo ? AppAssets.imgAndrianPoster : AppAssets.imgFeed);
+    final videoPath = selectedVideoUrl ?? AppAssets.videoAndrian;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF1E1E24),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
       builder: (_) => Padding(
         padding: EdgeInsets.only(
           left: 16,
@@ -933,7 +1129,11 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            if (customFileName != null) ...[
+              Text('File: $customFileName', style: const TextStyle(color: Color(0xFF20D5EC), fontSize: 12)),
+              const SizedBox(height: 8),
+            ],
+            const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -992,8 +1192,8 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                     userId: user?.id ?? 1,
                     authorName: user?.name ?? 'Andrian Pei',
                     authorUsername: user?.username ?? 'andrianpei',
-                    authorAvatar: user?.avatarUrl ?? AppAssets.imgProfile,
-                    videoUrl: AppAssets.videoAndrian,
+                    authorAvatar: user?.avatarUrl.isNotEmpty == true ? user!.avatarUrl : AppAssets.imgAndrianPoster,
+                    videoUrl: videoPath,
                     caption: captionController.text.trim().isNotEmpty
                         ? captionController.text.trim()
                         : 'Konten terbaru dari Studio Social Hub! ✨ #fyp #socialhub',
@@ -1011,10 +1211,10 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                     createdAt: 'Baru saja',
                   );
 
-                  // 1. Add post directly to FeedProvider (so it shows at the very top of Beranda)
+                  // 1. Add post directly to FeedProvider (shows at the very top of Beranda)
                   feedProvider.addPostToFeed(newPost);
 
-                  // 2. Add post directly to ProfileProvider (so it shows in profile grid)
+                  // 2. Add post directly to ProfileProvider (shows in profile video grid)
                   await profileProvider.createNewPost(
                     userId: newPost.userId,
                     authorName: newPost.authorName,
@@ -1036,58 +1236,14 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                     AppAudioService.instance.playChimeSound();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('🎉 Postingan berhasil dipublish ke Beranda dan Profil Anda!'),
+                        content: Text('🎉 Video berhasil dipublikasikan ke Beranda & Profil Anda!'),
                         backgroundColor: Color(0xFF10B981),
-                        duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
                       ),
                     );
                   }
                 },
                 child: const Text('Posting Sekarang', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSoundSelector(BuildContext context) {
-    final sounds = [
-      '♫ Sound Asli - Aurelie',
-      '♫ Anak Kampung (Remix)',
-      '♫ Sound Wisuda Bangga (Original) - andrianpei',
-      '♫ Trending TikTok Hits 2026',
-      '♫ Instrumental Santai Beat',
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E1E24),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Pilih Musik & Suara',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...sounds.map(
-              (sound) => ListTile(
-                leading: const Icon(Icons.music_note, color: AppColors.primary),
-                title: Text(sound, style: const TextStyle(color: Colors.white, fontSize: 14)),
-                trailing: const Icon(Icons.check, color: AppColors.cyan, size: 18),
-                onTap: () {
-                  context.read<CameraProvider>().setSound(sound);
-                  Navigator.pop(context);
-                },
               ),
             ),
           ],
@@ -1102,15 +1258,15 @@ class _GridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = Colors.white.withOpacity(0.25)
-      ..strokeWidth = 0.8;
+      ..strokeWidth = 1.0;
 
-    // 2 vertical lines
-    canvas.drawLine(Offset(size.width / 3, 0), Offset(size.width / 3, size.height), paint);
-    canvas.drawLine(Offset(size.width * 2 / 3, 0), Offset(size.width * 2 / 3, size.height), paint);
+    double dx = size.width / 3;
+    double dy = size.height / 3;
 
-    // 2 horizontal lines
-    canvas.drawLine(Offset(0, size.height / 3), Offset(size.width, size.height / 3), paint);
-    canvas.drawLine(Offset(0, size.height * 2 / 3), Offset(size.width, size.height * 2 / 3), paint);
+    canvas.drawLine(Offset(dx, 0), Offset(dx, size.height), paint);
+    canvas.drawLine(Offset(dx * 2, 0), Offset(dx * 2, size.height), paint);
+    canvas.drawLine(Offset(0, dy), Offset(size.width, dy), paint);
+    canvas.drawLine(Offset(0, dy * 2), Offset(size.width, dy * 2), paint);
   }
 
   @override
