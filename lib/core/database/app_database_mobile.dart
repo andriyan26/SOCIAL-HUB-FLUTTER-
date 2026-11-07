@@ -39,9 +39,9 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
+        username TEXT UNIQUE NOT NULL COLLATE NOCASE,
         name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL COLLATE NOCASE,
         password TEXT NOT NULL,
         avatar_url TEXT,
         bio TEXT,

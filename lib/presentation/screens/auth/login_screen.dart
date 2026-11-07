@@ -16,8 +16,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController(text: 'andrianpei');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _identifierController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   late AnimationController _animController;
@@ -189,29 +189,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       backgroundColor: AppColors.primary,
                       onPressed: _handleLogin,
                     ),
-                    const SizedBox(height: 20),
-
-                    // Quick Demo Credentials Hint
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.info_outline, size: 18, color: AppColors.cyan),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Akun Demo: andrianpei / password123 (Tersimpan di SQLite)',
-                              style: TextStyle(fontSize: 11.5, color: Colors.white.withOpacity(0.7)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 30),
 
                     // Don't have an account
                     Row(

@@ -187,7 +187,7 @@ class AppDatabase {
     _initWebData();
     final list = _webInMemoryDb[table] ?? [];
     if (where != null && whereArgs != null && whereArgs.isNotEmpty) {
-      if (where.contains('username = ?') || where.contains('email = ?')) {
+      if (where.toLowerCase().contains('username') || where.toLowerCase().contains('email')) {
         final queryVal = whereArgs.first.toString().toLowerCase();
         return list.where((row) {
           final u = (row['username'] ?? '').toString().toLowerCase();

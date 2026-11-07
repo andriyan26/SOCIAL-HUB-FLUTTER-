@@ -9,15 +9,31 @@ class LocalDataSource {
 
   // --- USER AUTH & PROFILE ---
   Future<UserModel?> login(String identifier, String password) async {
+    final clean = identifier.trim();
+    final cleanPass = password.trim();
+
+    // Query with case-insensitive check for mobile keyboard autocapitalization
     final results = await db.query(
       'users',
-      where: 'username = ? OR email = ?',
-      whereArgs: [identifier, identifier],
+      where: 'LOWER(username) = ? OR LOWER(email) = ?',
+      whereArgs: [clean.toLowerCase(), clean.toLowerCase()],
     );
 
-    if (results.isEmpty) return null;
+    if (results.isEmpty) {
+      // Fallback direct query
+      final fallbackResults = await db.query(
+        'users',
+        where: 'username = ? OR email = ?',
+        whereArgs: [clean, clean],
+      );
+      if (fallbackResults.isNotEmpty && fallbackResults.first['password'] == cleanPass) {
+        return UserModel.fromMap(fallbackResults.first);
+      }
+      return null;
+    }
+
     final userMap = results.first;
-    if (userMap['password'] == password) {
+    if (userMap['password'] == cleanPass) {
       return UserModel.fromMap(userMap);
     }
     return null;

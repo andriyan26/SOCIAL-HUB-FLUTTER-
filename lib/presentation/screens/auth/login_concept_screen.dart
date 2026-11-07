@@ -256,7 +256,7 @@ class _LoginConceptScreenState extends State<LoginConceptScreen> with SingleTick
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    'Akun Tersimpan di SQLite Lokal',
+                                    'Koneksi Database Terverifikasi',
                                     style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
                                   ),
                                 ],

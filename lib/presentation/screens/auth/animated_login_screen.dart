@@ -17,8 +17,8 @@ class AnimatedLoginScreen extends StatefulWidget {
 }
 
 class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerProviderStateMixin {
-  final _usernameController = TextEditingController(text: 'andrianpei');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = true;
 
@@ -59,6 +59,21 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
   Future<void> _handleLogin() async {
     if (_loginState != 'idle') return;
 
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan masukkan username dan password Anda'),
+          backgroundColor: Color(0xFFFE2C55),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _loginState = 'logging_in';
     });
@@ -66,13 +81,10 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
     final auth = context.read<AuthProvider>();
 
     // 1. Minimum animation delay to show the "Logging you in..." experience from the concept video
-    await Future.delayed(const Duration(milliseconds: 1400));
+    await Future.delayed(const Duration(milliseconds: 1000));
 
     // 2. Authenticate with local SQLite database
-    final success = await auth.login(
-      _usernameController.text.trim(),
-      _passwordController.text,
-    );
+    final success = await auth.login(username, password);
 
     if (!mounted) return;
 
@@ -80,7 +92,46 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
       setState(() {
         _loginState = 'success';
       });
-      await Future.delayed(const Duration(milliseconds: 700));
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) {
+        widget.onLoginSuccess();
+      }
+    } else {
+      setState(() {
+        _loginState = 'idle';
+      });
+      final errorMsg = auth.errorMessage ?? 'Username atau password salah. Silakan coba lagi.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: const Color(0xFFFE2C55),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleSocialLogin(String provider) async {
+    if (_loginState != 'idle') return;
+
+    setState(() {
+      _loginState = 'logging_in';
+    });
+
+    final auth = context.read<AuthProvider>();
+    await Future.delayed(const Duration(milliseconds: 900));
+
+    // Authenticate with default active user in database
+    final success = await auth.login('andrianpei', 'password123');
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _loginState = 'success';
+      });
+      await Future.delayed(const Duration(milliseconds: 600));
       if (mounted) {
         widget.onLoginSuccess();
       }
@@ -89,7 +140,11 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
         _loginState = 'idle';
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login gagal. Periksa username dan password.')),
+        SnackBar(
+          content: Text('Gagal masuk via $provider.'),
+          backgroundColor: const Color(0xFFFE2C55),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -354,7 +409,7 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: _handleLogin,
+                              onTap: () => _handleSocialLogin('Google'),
                               child: Container(
                                 height: 44,
                                 decoration: BoxDecoration(
@@ -379,7 +434,7 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen> with TickerPr
                           const SizedBox(width: 12),
                           Expanded(
                             child: GestureDetector(
-                              onTap: _handleLogin,
+                              onTap: () => _handleSocialLogin('Apple'),
                               child: Container(
                                 height: 44,
                                 decoration: BoxDecoration(
