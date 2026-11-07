@@ -24,7 +24,7 @@ class AppDatabase {
         'name': 'Andrian Pei',
         'email': 'andriandowehz123@gmail.com',
         'password': 'password123',
-        'avatar_url': 'assets/images/img_8668.jpg',
+        'avatar_url': 'assets/images/andrian_feed_poster.jpg',
         'bio': 'Taken 🤍',
         'following_count': 0,
         'followers_count': 0,
@@ -53,7 +53,7 @@ class AppDatabase {
         'user_id': 1,
         'author_name': 'Andrian Pei',
         'author_username': 'andrianpei',
-        'author_avatar': 'assets/images/img_8668.jpg',
+        'author_avatar': 'assets/images/andrian_feed_poster.jpg',
         'video_url': 'assets/videos/andrian_feed.mp4',
         'caption': 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik! Terima kasih untuk semua dukungannya ✨ #wisuda #unpam #informatika #fyp',
         'music_title': '♫ Berisi: Sound Wisuda Bangga (Original) - andrianpei',
@@ -63,7 +63,7 @@ class AppDatabase {
         'bookmarks_count': 17100,
         'is_liked': 0,
         'is_bookmarked': 0,
-        'view_count': 1520000,
+        'view_count': 182000,
         'thumbnail_path': 'assets/images/andrian_feed_poster.jpg',
         'created_at': now,
       },
@@ -105,25 +105,6 @@ class AppDatabase {
         'thumbnail_path': 'assets/images/img_8665.jpg',
         'created_at': now,
       },
-      ...List.generate(9, (index) => {
-        'id': index + 4,
-        'user_id': 1,
-        'author_name': 'Andrian Pei',
-        'author_username': 'andrianpei',
-        'author_avatar': 'assets/images/img_8668.jpg',
-        'video_url': 'assets/videos/konsep_login.mp4',
-        'caption': 'Vlog seru hari ini! Momen #${index + 1} 🚀',
-        'music_title': '♫ Sound Asli - andrianpei',
-        'likes_count': (index + 1) * 14,
-        'comments_count': (index + 1) * 3,
-        'shares_count': index + 1,
-        'bookmarks_count': index + 1,
-        'is_liked': 0,
-        'is_bookmarked': 0,
-        'view_count': index * 12,
-        'thumbnail_path': 'assets/images/img_8668.jpg',
-        'created_at': now,
-      })
     ];
 
     // 3. Friends
@@ -248,6 +229,14 @@ class AppDatabase {
       final id = whereArgs.first;
       for (int i = 0; i < list.length; i++) {
         if (list[i]['id'] == id) {
+          list[i] = {...list[i], ...data};
+          count++;
+        }
+      }
+    } else if (where.contains('user_id = ?')) {
+      final userId = whereArgs.first;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i]['user_id'] == userId) {
           list[i] = {...list[i], ...data};
           count++;
         }

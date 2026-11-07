@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
+import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
@@ -46,11 +47,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.auto_awesome_mosaic_outlined, color: Color(0xFF20D5EC)),
+              title: const Text('TikTok Studio / Alat Kreator', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Membuka Analitik & Alat Kreator...')),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.qr_code_2, color: Colors.white),
               title: const Text('Kode QR Saya', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
                 _showQrDialog(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFF7B500)),
+              title: const Text('Saldo & Koin Rewards', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _showCoinRewards(context);
               },
             ),
             ListTile(
@@ -240,7 +259,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showAddFriendsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Temukan Teman', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFF10C055),
+                child: Icon(Icons.contacts, color: Colors.white, size: 22),
+              ),
+              title: const Text('Kontak Telepon', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Temukan teman dari buku kontak Anda', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Menyinkronkan kontak telepon...')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFF1877F2),
+                child: Icon(Icons.facebook, color: Colors.white, size: 22),
+              ),
+              title: const Text('Teman Facebook', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Hubungkan akun Facebook untuk melihat teman', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Menghubungkan akun Facebook...')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppColors.primary,
+                child: Icon(Icons.share, color: Colors.white, size: 20),
+              ),
+              title: const Text('Undang Teman', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Bagikan tautan profil Anda ke WhatsApp/Instagram', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Tautan profil disalin ke clipboard!')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showAccountSwitcher(BuildContext context) {
+    final user = context.read<AuthProvider>().currentUser;
+    final userAvatar = user?.avatarUrl ?? '';
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E24),
@@ -254,11 +337,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Text('Beralih Akun', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
             ListTile(
-              leading: const CircleAvatar(
+              leading: CircleAvatar(
                 backgroundColor: AppColors.avatarPurple,
-                child: Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                backgroundImage: userAvatar.isNotEmpty && userAvatar != 'purple_a' && userAvatar.startsWith('assets/')
+                    ? AssetImage(userAvatar)
+                    : null,
+                child: userAvatar.isEmpty || userAvatar == 'purple_a' || !userAvatar.startsWith('assets/')
+                    ? const Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                    : null,
               ),
-              title: const Text('andrianpei', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              title: Text(user?.username ?? 'andrianpei', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               subtitle: const Text('Akun Utama (Aktif)', style: TextStyle(color: AppColors.cyan, fontSize: 12)),
               trailing: const Icon(Icons.check_circle, color: AppColors.cyan),
             ),
@@ -284,9 +372,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profileProvider = context.watch<ProfileProvider>();
     final user = auth.currentUser;
     final posts = profileProvider.userPosts;
+    final selectedSubTab = profileProvider.selectedSubTab;
 
     final displayName = user?.username ?? 'andrianpei';
     final bioText = user?.bio.isNotEmpty == true ? user!.bio : 'Taken 🤍';
+    final userAvatar = user?.avatarUrl ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -351,11 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.person_add_alt_outlined, color: Colors.white, size: 22),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Membuka Tambah Teman & Pindai Kontak...')),
-              );
-            },
+            onPressed: () => _showAddFriendsSheet(context),
           ),
           IconButton(
             icon: const Icon(Icons.menu, color: Colors.white, size: 24),
@@ -369,7 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             const SizedBox(height: 10),
 
-            // Profile Header Row: Details on left, Avatar on right (Matches IMG_8668)
+            // Profile Header Row: Details on left, Dynamic Avatar on right
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -459,7 +545,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
-                  // Right Side: Big Circular Avatar with Purple 'a' + Blue Plus Button
+                  // Right Side: Big Circular Avatar that syncs across entire app
                   GestureDetector(
                     onTap: () {
                       showModalBottomSheet(
@@ -479,11 +565,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: AppColors.avatarPurple,
                             shape: BoxShape.circle,
                           ),
-                          child: const Center(
-                            child: Text(
-                              'a',
-                              style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Colors.white),
-                            ),
+                          child: ClipOval(
+                            child: (userAvatar.isNotEmpty && userAvatar != 'purple_a' && userAvatar.startsWith('assets/'))
+                                ? Image.asset(
+                                    userAvatar,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Center(
+                                      child: Text(
+                                        'a',
+                                        style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Colors.white),
+                                      ),
+                                    ),
+                                  )
+                                : const Center(
+                                    child: Text(
+                                      'a',
+                                      style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Colors.white),
+                                    ),
+                                  ),
                           ),
                         ),
                         Positioned(
@@ -521,81 +620,142 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const Divider(color: AppColors.border, height: 1),
 
-            // 3-Column Video Grid (Matches IMG_8668)
-            // USER COMPLAINT FIXED: Clicking ANY post now opens full-screen interactive PostDetailReelScreen!
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 1.5,
-                mainAxisSpacing: 1.5,
-                childAspectRatio: 0.78,
-              ),
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                final post = posts[index];
-                return GestureDetector(
-                  onTap: () {
-                    // Navigate to interactive Full-Screen Reel View
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PostDetailReelScreen(
-                          posts: posts,
-                          initialIndex: index,
-                        ),
+            // Sub-Tab Content Rendering
+            if (selectedSubTab == 0) ...[
+              // Tab 0: Clean 3-Column Video Grid showing ONLY authentic uploaded video(s)
+              if (posts.isEmpty)
+                _buildEmptyTabState(
+                  icon: Icons.videocam_outlined,
+                  title: 'Belum Ada Video',
+                  description: 'Unggah video pertama Anda lewat tombol Kamera di menu bawah.',
+                )
+              else
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 1.5,
+                    mainAxisSpacing: 1.5,
+                    childAspectRatio: 0.78,
+                  ),
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) {
+                    final post = posts[index];
+                    return GestureDetector(
+                      onTap: () {
+                        // Navigate to interactive Full-Screen Reel View
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PostDetailReelScreen(
+                              posts: posts,
+                              initialIndex: index,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Video thumbnail image
+                          Image.asset(
+                            post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                          ),
+
+                          // Dark bottom gradient for view count readability
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
+                                begin: Alignment.center,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                          ),
+
+                          // Bottom left Play count icon and formatted number (e.g. '▷ 182K')
+                          Positioned(
+                            left: 6,
+                            bottom: 6,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.play_arrow_outlined, color: Colors.white, size: 16),
+                                const SizedBox(width: 2),
+                                Text(
+                                  Formatters.formatCompactK(post.viewCount),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Video thumbnail image
-                      Image.asset(
-                        post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgProfile,
-                        fit: BoxFit.cover,
-                        alignment: _getGridAlignment(index),
-                      ),
-
-                      // Dark bottom gradient for view count readability
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
-                            begin: Alignment.center,
-                            end: Alignment.bottomCenter,
-                          ),
-                        ),
-                      ),
-
-                      // Bottom left Play count icon and number (Matches '▷ 0')
-                      Positioned(
-                        left: 6,
-                        bottom: 6,
-                        child: Row(
-                          children: [
-                            const Icon(Icons.play_arrow_outlined, color: Colors.white, size: 16),
-                            const SizedBox(width: 2),
-                            Text(
-                              '${post.viewCount}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                ),
+            ] else if (selectedSubTab == 1) ...[
+              _buildEmptyTabState(
+                icon: Icons.lock_outline,
+                title: 'Video Pribadi Anda',
+                description: 'Hanya Anda yang dapat melihat video di tab ini. Anda dapat mengubah privasi video kapan saja.',
+              ),
+            ] else if (selectedSubTab == 2) ...[
+              _buildEmptyTabState(
+                icon: Icons.repeat,
+                title: 'Posting Ulang Video',
+                description: 'Posting ulang video kreator favorit Anda untuk merekomendasikannya ke teman dan pengikut.',
+              ),
+            ] else if (selectedSubTab == 3) ...[
+              _buildEmptyTabState(
+                icon: Icons.bookmark_outline,
+                title: 'Favorit & Koleksi',
+                description: 'Semua postingan, suara latar, produk TikTok Shop, dan efek tersimpan akan dikelompokkan di sini.',
+              ),
+            ] else if (selectedSubTab == 4) ...[
+              _buildEmptyTabState(
+                icon: Icons.favorite_outline,
+                title: 'Hanya Anda yang dapat melihat tab ini',
+                description: 'Video yang Anda sukai dirahasiakan dari publik. Anda dapat mengubah setelan visibilitas ini di Privasi.',
+              ),
+            ],
+            const SizedBox(height: 40),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyTabState({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+      child: Column(
+        children: [
+          Icon(icon, size: 64, color: AppColors.textSecondary),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+          ),
+        ],
       ),
     );
   }
@@ -638,11 +798,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-  }
-
-  Alignment _getGridAlignment(int index) {
-    final x = (index % 3) == 0 ? -1.0 : ((index % 3) == 1 ? 0.0 : 1.0);
-    final y = (index ~/ 3) == 0 ? -1.0 : ((index ~/ 3) == 1 ? 0.0 : 1.0);
-    return Alignment(x, y);
   }
 }

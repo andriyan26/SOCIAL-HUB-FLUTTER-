@@ -37,6 +37,15 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateAuthorAvatar(int userId, String newAvatar) {
+    for (int i = 0; i < _posts.length; i++) {
+      if (_posts[i].userId == userId) {
+        _posts[i] = _posts[i].copyWith(authorAvatar: newAvatar);
+      }
+    }
+    notifyListeners();
+  }
+
   void setActivePostIndex(int index) {
     _activePostIndex = index;
     notifyListeners();

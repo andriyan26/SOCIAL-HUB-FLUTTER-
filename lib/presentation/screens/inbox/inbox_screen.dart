@@ -575,7 +575,12 @@ class _InboxScreenState extends State<InboxScreen> {
                         CircleAvatar(
                           radius: 19,
                           backgroundColor: AppColors.avatarPurple,
-                          backgroundImage: username == 'andrianpei' ? const AssetImage(AppAssets.imgProfile) : null,
+                          backgroundImage: (username == 'andrianpei' &&
+                                  context.read<AuthProvider>().currentUser?.avatarUrl.isNotEmpty == true &&
+                                  context.read<AuthProvider>().currentUser!.avatarUrl != 'purple_a' &&
+                                  context.read<AuthProvider>().currentUser!.avatarUrl.startsWith('assets/'))
+                              ? AssetImage(context.read<AuthProvider>().currentUser!.avatarUrl)
+                              : (username == 'andrianpei' ? const AssetImage(AppAssets.imgAndrianPoster) : null),
                           child: username != 'andrianpei' ? Text(name[0].toLowerCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)) : null,
                         ),
                         const SizedBox(width: 10),
@@ -1155,6 +1160,8 @@ class _InboxScreenState extends State<InboxScreen> {
   @override
   Widget build(BuildContext context) {
     final inbox = context.watch<InboxProvider>();
+    final auth = context.watch<AuthProvider>();
+    final userAvatar = auth.currentUser?.avatarUrl ?? '';
     final notifications = inbox.notifications;
 
     return Scaffold(
@@ -1229,8 +1236,12 @@ class _InboxScreenState extends State<InboxScreen> {
                                         ? Border.all(color: const Color(0xFF20D5EC), width: 2.5)
                                         : null,
                                   ),
-                                  child: const Center(
-                                    child: Text('a', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600)),
+                                  child: ClipOval(
+                                    child: (userAvatar.isNotEmpty && userAvatar != 'purple_a' && userAvatar.startsWith('assets/'))
+                                        ? Image.asset(userAvatar, fit: BoxFit.cover)
+                                        : const Center(
+                                            child: Text('a', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600)),
+                                          ),
                                   ),
                                 ),
                                 Positioned(
@@ -1426,7 +1437,18 @@ class _InboxScreenState extends State<InboxScreen> {
               ),
               child: Center(
                 child: isUserAvatar
-                    ? const Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22))
+                    ? ClipOval(
+                        child: (context.watch<AuthProvider>().currentUser?.avatarUrl.isNotEmpty == true &&
+                                context.watch<AuthProvider>().currentUser!.avatarUrl != 'purple_a' &&
+                                context.watch<AuthProvider>().currentUser!.avatarUrl.startsWith('assets/'))
+                            ? Image.asset(
+                                context.watch<AuthProvider>().currentUser!.avatarUrl,
+                                fit: BoxFit.cover,
+                                width: 50,
+                                height: 50,
+                              )
+                            : const Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
+                      )
                     : Icon(icon, color: Colors.white, size: 26),
               ),
             ),

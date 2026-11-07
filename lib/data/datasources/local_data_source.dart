@@ -40,6 +40,14 @@ class LocalDataSource {
 
   Future<bool> updateUser(int id, Map<String, dynamic> data) async {
     final updated = await db.update('users', data, where: 'id = ?', whereArgs: [id]);
+    if (data.containsKey('avatar_url')) {
+      await db.update(
+        'posts',
+        {'author_avatar': data['avatar_url']},
+        where: 'user_id = ?',
+        whereArgs: [id],
+      );
+    }
     return updated > 0;
   }
 

@@ -15,5 +15,15 @@ class Formatters {
     RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
     return str.replaceAllMapped(reg, (Match m) => '${m[1]}.');
   }
-}
 
+  static String formatCompactK(int count) {
+    if (count >= 1000000) {
+      double result = count / 1000000;
+      return '${result.toStringAsFixed(1).replaceAll('.0', '')}M';
+    } else if (count >= 1000) {
+      double result = count / 1000;
+      return '${result.toStringAsFixed(0)}K';
+    }
+    return count.toString();
+  }
+}

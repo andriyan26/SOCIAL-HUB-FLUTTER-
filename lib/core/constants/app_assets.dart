@@ -1,3 +1,4 @@
+
 class AppAssets {
   // Videos
   static const String videoLanding = 'assets/videos/konsep_sebelum_login.mp4';

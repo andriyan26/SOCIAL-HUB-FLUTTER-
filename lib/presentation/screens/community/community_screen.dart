@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/community_provider.dart';
 
 class CommunityScreen extends StatefulWidget {
@@ -160,6 +161,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) {
     final communityProvider = context.watch<CommunityProvider>();
+    final auth = context.watch<AuthProvider>();
+    final userAvatar = auth.currentUser?.avatarUrl ?? '';
     final friends = communityProvider.friends;
 
     return Scaffold(
@@ -179,10 +182,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 17,
                   backgroundColor: AppColors.avatarPurple,
-                  child: Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  backgroundImage: (userAvatar.isNotEmpty && userAvatar != 'purple_a' && userAvatar.startsWith('assets/'))
+                      ? AssetImage(userAvatar)
+                      : null,
+                  child: (userAvatar.isEmpty || userAvatar == 'purple_a' || !userAvatar.startsWith('assets/'))
+                      ? const Text('a', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))
+                      : null,
                 ),
                 Positioned(
                   bottom: 4,

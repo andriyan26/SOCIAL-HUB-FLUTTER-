@@ -33,6 +33,15 @@ class ProfileProvider extends ChangeNotifier {
     }
   }
 
+  void updateAuthorAvatar(int userId, String newAvatar) {
+    for (int i = 0; i < _userPosts.length; i++) {
+      if (_userPosts[i].userId == userId) {
+        _userPosts[i] = _userPosts[i].copyWith(authorAvatar: newAvatar);
+      }
+    }
+    notifyListeners();
+  }
+
   Future<PostEntity> createNewPost({
     required int userId,
     required String authorName,

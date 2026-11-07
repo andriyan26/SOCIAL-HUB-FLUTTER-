@@ -128,7 +128,7 @@ class AppDatabase {
       'name': 'Andrian Pei',
       'email': 'andriandowehz123@gmail.com',
       'password': 'password123',
-      'avatar_url': 'assets/images/img_8668.jpg',
+      'avatar_url': 'assets/images/andrian_feed_poster.jpg',
       'bio': 'Taken 🤍',
       'following_count': 0,
       'followers_count': 0,
@@ -155,7 +155,7 @@ class AppDatabase {
       'user_id': 1,
       'author_name': 'Andrian Pei',
       'author_username': 'andrianpei',
-      'author_avatar': 'assets/images/img_8668.jpg',
+      'author_avatar': 'assets/images/andrian_feed_poster.jpg',
       'video_url': 'assets/videos/andrian_feed.mp4',
       'caption': 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik! Terima kasih untuk semua dukungannya ✨ #wisuda #unpam #informatika #fyp',
       'music_title': '♫ Berisi: Sound Wisuda Bangga (Original) - andrianpei',
@@ -165,7 +165,7 @@ class AppDatabase {
       'bookmarks_count': 17100,
       'is_liked': 0,
       'is_bookmarked': 0,
-      'view_count': 1520000,
+      'view_count': 182000,
       'thumbnail_path': 'assets/images/andrian_feed_poster.jpg',
       'created_at': now,
     });
@@ -209,28 +209,6 @@ class AppDatabase {
       'thumbnail_path': 'assets/images/img_8665.jpg',
       'created_at': now,
     });
-
-    for (int i = 1; i <= 9; i++) {
-      await db.insert('posts', {
-        'id': i + 3,
-        'user_id': 1,
-        'author_name': 'Andrian Pei',
-        'author_username': 'andrianpei',
-        'author_avatar': 'assets/images/img_8668.jpg',
-        'video_url': 'assets/videos/konsep_login.mp4',
-        'caption': 'Vlog seru hari ini! Momen #$i 🚀',
-        'music_title': '♫ Sound Asli - andrianpei',
-        'likes_count': i * 14,
-        'comments_count': i * 3,
-        'shares_count': i,
-        'bookmarks_count': i,
-        'is_liked': 0,
-        'is_bookmarked': 0,
-        'view_count': (i - 1) * 12,
-        'thumbnail_path': 'assets/images/img_8668.jpg',
-        'created_at': now,
-      });
-    }
 
     final friendsData = [
       {'username': 'ei.kaa', 'name': 'ei.kaa🍭', 'subtitle': 'Membagikan video kepada Anda', 'is_following': 0},
