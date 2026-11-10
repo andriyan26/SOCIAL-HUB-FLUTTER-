@@ -2,7 +2,7 @@
 import 'dart:html' as html;
 
 void pickMediaFileNative({
-  required Function(String fileName, String? objectUrl, bool isVideo) onSelected,
+  required Function(String fileName, String? objectUrl, bool isVideo, String? thumbnailUrl) onSelected,
 }) {
   final uploadInput = html.FileUploadInputElement()
     ..accept = 'video/*,image/*'
@@ -23,7 +23,43 @@ void pickMediaFileNative({
           lowerName.endsWith('.avi');
 
       final objectUrl = html.Url.createObjectUrl(file);
-      onSelected(file.name, objectUrl, isVideo);
+
+      if (isVideo) {
+        final video = html.VideoElement()
+          ..src = objectUrl
+          ..crossOrigin = 'anonymous'
+          ..muted = true
+          ..preload = 'auto';
+
+        bool extracted = false;
+        void takeSnapshot() {
+          if (extracted) return;
+          extracted = true;
+          try {
+            final w = video.videoWidth > 0 ? video.videoWidth : 480;
+            final h = video.videoHeight > 0 ? video.videoHeight : 854;
+            final canvas = html.CanvasElement(width: w, height: h);
+            canvas.context2D.drawImage(video, 0, 0);
+            final dataUrl = canvas.toDataUrl('image/jpeg', 0.85);
+            onSelected(file.name, objectUrl, true, dataUrl);
+          } catch (_) {
+            onSelected(file.name, objectUrl, true, null);
+          }
+        }
+
+        video.onLoadedMetadata.listen((_) {
+          video.currentTime = 0.5;
+        });
+        video.onSeeked.listen((_) => takeSnapshot());
+        // Fallback after 600ms if seeking or metadata takes longer
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (!extracted) {
+            takeSnapshot();
+          }
+        });
+      } else {
+        onSelected(file.name, objectUrl, false, objectUrl);
+      }
       uploadInput.remove();
     } else {
       uploadInput.remove();
@@ -47,7 +83,6 @@ void pickImageFileNative({
     final files = uploadInput.files;
     if (files != null && files.isNotEmpty) {
       final file = files[0];
-      // Create high-performance, lightweight object URL (instant, no base64 memory overhead)
       final objectUrl = html.Url.createObjectUrl(file);
       onSelected(file.name, objectUrl);
       uploadInput.remove();

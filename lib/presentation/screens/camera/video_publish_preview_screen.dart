@@ -167,14 +167,16 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
         : 'Video baru di Social Hub ✨ #fyp';
 
     final effectiveVideo = widget.videoUrl.isNotEmpty ? widget.videoUrl : AppAssets.videoAndrian;
-    final effectiveThumb = widget.thumbnailUrl.isNotEmpty ? widget.thumbnailUrl : AppAssets.imgAndrianPoster;
+    final effectiveThumb = widget.thumbnailUrl.isNotEmpty
+        ? widget.thumbnailUrl
+        : (widget.isVideo ? AppAssets.imgFeed : AppAssets.imgProfile);
 
     final newPost = PostEntity(
       id: DateTime.now().millisecondsSinceEpoch,
       userId: user?.id ?? 1,
-      authorName: user?.name ?? 'Andrian Pei',
+      authorName: user?.name ?? 'Andrian',
       authorUsername: user?.username ?? 'andrianpei',
-      authorAvatar: user?.avatarUrl.isNotEmpty == true ? user!.avatarUrl : AppAssets.imgAndrianPoster,
+      authorAvatar: user?.avatarUrl.isNotEmpty == true ? user!.avatarUrl : AppAssets.imgProfile,
       videoUrl: effectiveVideo,
       caption: caption,
       musicTitle: widget.soundTitle.isNotEmpty ? widget.soundTitle : '♫ Sound Asli - andrianpei',

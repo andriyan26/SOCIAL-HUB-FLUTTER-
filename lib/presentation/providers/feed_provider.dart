@@ -22,9 +22,9 @@ class FeedProvider extends ChangeNotifier {
       PostEntity(
         id: 1,
         userId: 1,
-        authorName: 'Andrian Pei',
+        authorName: 'Andrian',
         authorUsername: 'andrianpei',
-        authorAvatar: AppAssets.imgAndrianPoster,
+        authorAvatar: AppAssets.imgProfile,
         videoUrl: AppAssets.videoAndrian,
         caption: 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik! Terima kasih untuk semua dukungannya ✨ #wisuda #unpam #informatika #fyp',
         musicTitle: '♫ Berisi: Sound Wisuda Bangga (Original) - andrianpei',

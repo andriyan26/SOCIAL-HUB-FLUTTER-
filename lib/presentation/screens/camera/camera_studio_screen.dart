@@ -998,12 +998,12 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                 onPressed: () {
                   Navigator.pop(context);
                   pickMediaFileNative(
-                    onSelected: (fileName, objectUrl, isVideo) {
+                    onSelected: (fileName, objectUrl, isVideo, thumbnailUrl) {
                       if (!mounted) return;
                       _openPublishPreviewScreen(
                         isVideo: isVideo,
                         selectedVideoUrl: objectUrl,
-                        selectedThumb: isVideo ? AppAssets.imgAndrianPoster : objectUrl,
+                        selectedThumb: thumbnailUrl ?? objectUrl ?? (isVideo ? AppAssets.imgFeed : AppAssets.imgProfile),
                         customFileName: fileName,
                       );
                     },

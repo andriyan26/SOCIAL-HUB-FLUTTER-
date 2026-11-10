@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:social_hub/core/services/cloud_sync_service.dart';
 import 'package:social_hub/domain/entities/user_entity.dart';
 import 'package:social_hub/domain/repositories/auth_repository.dart';
 
@@ -27,6 +28,7 @@ class AuthProvider extends ChangeNotifier {
       if (user != null) {
         _currentUser = user;
         _status = AuthStatus.authenticated;
+        _syncFromCloudBackground();
       } else {
         _status = AuthStatus.unauthenticated;
       }
@@ -34,6 +36,45 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.unauthenticated;
     }
     notifyListeners();
+  }
+
+  void _syncFromCloudBackground() {
+    Future.microtask(() async {
+      try {
+        final cloudUser = await CloudSyncService.fetchCloudUser();
+        if (cloudUser != null && _currentUser != null) {
+          final cloudName = cloudUser['name']?.toString() ?? '';
+          final cloudUsername = cloudUser['username']?.toString() ?? '';
+          final cloudBio = cloudUser['bio']?.toString() ?? '';
+          final cloudAvatar = cloudUser['avatar_url']?.toString() ?? '';
+
+          bool needsUpdate = false;
+          if (cloudName.isNotEmpty && cloudName != _currentUser!.name) needsUpdate = true;
+          if (cloudBio.isNotEmpty && cloudBio != _currentUser!.bio) needsUpdate = true;
+          if (cloudAvatar.isNotEmpty && cloudAvatar != _currentUser!.avatarUrl) needsUpdate = true;
+          if (cloudUsername.isNotEmpty && cloudUsername != _currentUser!.username) needsUpdate = true;
+
+          if (needsUpdate) {
+            _currentUser = _currentUser!.copyWith(
+              name: cloudName.isNotEmpty ? cloudName : _currentUser!.name,
+              username: cloudUsername.isNotEmpty ? cloudUsername : _currentUser!.username,
+              bio: cloudBio.isNotEmpty ? cloudBio : _currentUser!.bio,
+              avatarUrl: cloudAvatar.isNotEmpty ? cloudAvatar : _currentUser!.avatarUrl,
+            );
+            notifyListeners();
+            await authRepository.updateProfile(
+              id: _currentUser!.id,
+              name: _currentUser!.name,
+              username: _currentUser!.username,
+              bio: _currentUser!.bio,
+              avatarUrl: _currentUser!.avatarUrl,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Cloud sync notice: $e');
+      }
+    });
   }
 
   Future<bool> login(String usernameOrEmail, String password) async {
@@ -50,6 +91,7 @@ class AuthProvider extends ChangeNotifier {
         _currentUser = user;
         _status = AuthStatus.authenticated;
         notifyListeners();
+        _syncFromCloudBackground();
         return true;
       } else {
         _errorMessage = 'Username/email atau kata sandi salah.';
@@ -124,6 +166,13 @@ class AuthProvider extends ChangeNotifier {
     try {
       await authRepository.updateProfile(
         id: id,
+        name: _currentUser!.name,
+        username: _currentUser!.username,
+        bio: _currentUser!.bio,
+        avatarUrl: _currentUser!.avatarUrl,
+      );
+      // 3. Sync to Cloud Gist database so changes immediately propagate across Web & Mobile
+      CloudSyncService.syncProfileToCloud(
         name: _currentUser!.name,
         username: _currentUser!.username,
         bio: _currentUser!.bio,

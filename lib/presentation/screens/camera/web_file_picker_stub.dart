@@ -1,5 +1,5 @@
 void pickMediaFileNative({
-  required Function(String fileName, String? objectUrl, bool isVideo) onSelected,
+  required Function(String fileName, String? objectUrl, bool isVideo, String? thumbnailUrl) onSelected,
 }) {
   // Stub for non-web
 }

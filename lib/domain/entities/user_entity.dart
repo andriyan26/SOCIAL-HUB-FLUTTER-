@@ -22,5 +22,31 @@ class UserEntity {
     this.likesCount = 0,
     required this.createdAt,
   });
+
+  UserEntity copyWith({
+    int? id,
+    String? username,
+    String? name,
+    String? email,
+    String? avatarUrl,
+    String? bio,
+    int? followingCount,
+    int? followersCount,
+    int? likesCount,
+    String? createdAt,
+  }) {
+    return UserEntity(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      bio: bio ?? this.bio,
+      followingCount: followingCount ?? this.followingCount,
+      followersCount: followersCount ?? this.followersCount,
+      likesCount: likesCount ?? this.likesCount,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
 

@@ -59,17 +59,26 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
       final post = widget.posts[_currentIndex];
       final videoUrl = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
 
-      _videoController = VideoPlayerController.asset(videoUrl)
-        ..initialize().then((_) {
-          if (mounted) {
-            _videoController?.setLooping(true);
-            _videoController?.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
-            _videoController?.play();
-            setState(() {
-              _isPlaying = true;
-            });
-          }
-        });
+      VideoPlayerController controller;
+      if (videoUrl.startsWith('assets/')) {
+        controller = VideoPlayerController.asset(videoUrl);
+      } else {
+        controller = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+      }
+
+      _videoController = controller;
+      controller.initialize().then((_) {
+        if (mounted && _videoController == controller) {
+          controller.setLooping(true);
+          controller.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
+          controller.play();
+          setState(() {
+            _isPlaying = true;
+          });
+        }
+      }).catchError((err) {
+        debugPrint('Notice initializing reel video ($videoUrl): $err');
+      });
     }
   }
 
