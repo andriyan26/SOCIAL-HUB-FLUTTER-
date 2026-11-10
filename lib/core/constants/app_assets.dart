@@ -13,6 +13,7 @@ class AppAssets {
   static const String imgFriends = 'assets/images/img_8665.jpg';
   static const String imgCamera = 'assets/images/img_8666.jpg';
   static const String imgInbox = 'assets/images/img_8667.jpg';
+  static const String imgNotifications = 'assets/images/img_8667.jpg';
   static const String imgProfile = 'assets/images/img_8668.jpg';
   static const String imgAndrianPoster = 'assets/images/andrian_feed_poster.jpg';
 }

@@ -488,8 +488,8 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
 
     if (feedProvider.targetPageIndexOnReturn >= 0) {
       final target = feedProvider.targetPageIndexOnReturn;
-      feedProvider.clearJumpRequest();
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        feedProvider.clearJumpRequest();
         if (_pageController.hasClients) {
           _pageController.jumpToPage(target);
         }
