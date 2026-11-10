@@ -189,11 +189,8 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
       createdAt: 'Baru saja',
     );
 
-    // 1. Add post directly to FeedProvider (shows at the very top of Beranda)
-    feedProvider.addPostToFeed(newPost);
-
-    // 2. Add post directly to ProfileProvider (shows in profile video grid)
-    await profileProvider.createNewPost(
+    // 1. Save post to database and insert to ProfileProvider user video grid
+    final savedPost = await profileProvider.createNewPost(
       userId: newPost.userId,
       authorName: newPost.authorName,
       authorUsername: newPost.authorUsername,
@@ -203,6 +200,9 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
       musicTitle: newPost.musicTitle,
       thumbnailPath: newPost.thumbnailPath,
     );
+
+    // 2. Add post directly to FeedProvider (shows at index 0 on top of Beranda)
+    await feedProvider.addPostToFeed(savedPost, saveToDb: false);
 
     if (mounted) {
       _videoController?.pause();

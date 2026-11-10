@@ -574,7 +574,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     child: Row(
                       children: [
                         AppAvatar(
-                          avatarUrl: username == 'andrianpei'
+                          avatarUrl: (username.toLowerCase() == (context.read<AuthProvider>().currentUser?.username ?? 'andrianpei').toLowerCase() || username == 'andrianpei')
                               ? (context.read<AuthProvider>().currentUser?.avatarUrl ?? AppAssets.imgAndrianPoster)
                               : '',
                           size: 38,
@@ -1314,14 +1314,22 @@ class _InboxScreenState extends State<InboxScreen> {
                   _buildNotificationCategoryTile(
                     iconBg: AppColors.avatarPurple,
                     icon: Icons.person,
-                    title: 'andrianpei',
+                    title: auth.currentUser?.username ?? 'andrianpei',
                     subtitle: 'Terkirim',
                     hasBadge: false,
                     timeLabel: 'Kemarin',
                     isUserAvatar: true,
-                    onTap: () => _showDirectMessageChat(context, name: 'Andrian Pei', username: 'andrianpei'),
+                    onTap: () => _showDirectMessageChat(
+                      context,
+                      name: auth.currentUser?.name ?? 'Andrian Pei',
+                      username: auth.currentUser?.username ?? 'andrianpei',
+                    ),
                     onCameraTap: () {
-                      _showDirectMessageChat(context, name: 'Andrian Pei', username: 'andrianpei');
+                      _showDirectMessageChat(
+                        context,
+                        name: auth.currentUser?.name ?? 'Andrian Pei',
+                        username: auth.currentUser?.username ?? 'andrianpei',
+                      );
                     },
                   ),
 

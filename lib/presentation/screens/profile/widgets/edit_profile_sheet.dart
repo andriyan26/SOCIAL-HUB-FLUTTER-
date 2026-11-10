@@ -20,6 +20,7 @@ class EditProfileSheet extends StatefulWidget {
 
 class _EditProfileSheetState extends State<EditProfileSheet> {
   late TextEditingController _nameController;
+  late TextEditingController _usernameController;
   late TextEditingController _bioController;
   late String _selectedAvatar;
   String? _customUploadedName;
@@ -53,6 +54,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     super.initState();
     final user = context.read<AuthProvider>().currentUser;
     _nameController = TextEditingController(text: user?.name ?? 'Andrian Pei');
+    _usernameController = TextEditingController(text: user?.username ?? 'andrianpei');
     _bioController = TextEditingController(text: user?.bio ?? 'Taken 🤍');
     _selectedAvatar = user?.avatarUrl.isNotEmpty == true
         ? user!.avatarUrl
@@ -62,6 +64,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -98,20 +101,34 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
       final userId = user?.id ?? 1;
 
       final name = _nameController.text.trim();
+      final username = _usernameController.text.trim().replaceAll('@', '');
       final bio = _bioController.text.trim();
+
       final finalName = name.isNotEmpty ? name : (user?.name ?? 'Andrian Pei');
+      final finalUsername = username.isNotEmpty ? username : (user?.username ?? 'andrianpei');
       final finalBio = bio.isNotEmpty ? bio : (user?.bio ?? 'Taken 🤍');
 
       await auth.updateProfile(
         name: finalName,
+        username: finalUsername,
         bio: finalBio,
         avatarUrl: _selectedAvatar,
       );
 
       if (mounted) {
         // Synchronize across all active providers so Beranda, Rotating Disk, & Profile update immediately
-        context.read<FeedProvider>().updateAuthorProfile(userId, name: finalName, avatarUrl: _selectedAvatar);
-        context.read<ProfileProvider>().updateAuthorProfile(userId, name: finalName, avatarUrl: _selectedAvatar);
+        context.read<FeedProvider>().updateAuthorProfile(
+          userId,
+          name: finalName,
+          username: finalUsername,
+          avatarUrl: _selectedAvatar,
+        );
+        context.read<ProfileProvider>().updateAuthorProfile(
+          userId,
+          name: finalName,
+          username: finalUsername,
+          avatarUrl: _selectedAvatar,
+        );
 
         AppAudioService.instance.playChimeSound();
         Navigator.pop(context);
@@ -311,6 +328,13 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
               controller: _nameController,
               labelText: 'Nama Lengkap',
               hintText: 'Andrian Pei',
+            ),
+            const SizedBox(height: 16),
+
+            CustomTextField(
+              controller: _usernameController,
+              labelText: 'Nama Pengguna (Username)',
+              hintText: 'andrianpei',
             ),
             const SizedBox(height: 16),
 

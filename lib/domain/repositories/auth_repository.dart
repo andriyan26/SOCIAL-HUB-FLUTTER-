@@ -14,6 +14,7 @@ abstract class AuthRepository {
   Future<bool> updateProfile({
     required int id,
     required String name,
+    String? username,
     required String bio,
     String? avatarUrl,
   });

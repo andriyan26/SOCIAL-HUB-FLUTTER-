@@ -109,16 +109,34 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
-  void addPostToFeed(PostEntity post) {
+  Future<void> addPostToFeed(PostEntity post, {bool saveToDb = false}) async {
     _posts.insert(0, post);
+    _activePostIndex = 0;
     notifyListeners();
+
+    if (saveToDb) {
+      try {
+        await postRepository.createPost(
+          userId: post.userId,
+          authorName: post.authorName,
+          authorUsername: post.authorUsername,
+          authorAvatar: post.authorAvatar,
+          videoUrl: post.videoUrl,
+          caption: post.caption,
+          musicTitle: post.musicTitle,
+          thumbnailPath: post.thumbnailPath,
+        );
+      } catch (e) {
+        debugPrint('Notice saving post to repository in FeedProvider: $e');
+      }
+    }
   }
 
   void updateAuthorAvatar(int userId, String newAvatar) {
     updateAuthorProfile(userId, avatarUrl: newAvatar);
   }
 
-  void updateAuthorProfile(int userId, {String? name, String? avatarUrl}) {
+  void updateAuthorProfile(int userId, {String? name, String? username, String? avatarUrl}) {
     if (_posts.isEmpty) {
       _initDefaultPosts();
     }
@@ -126,6 +144,7 @@ class FeedProvider extends ChangeNotifier {
       if (_posts[i].userId == userId || _posts[i].authorUsername.toLowerCase() == 'andrianpei') {
         _posts[i] = _posts[i].copyWith(
           authorName: (name != null && name.isNotEmpty) ? name : _posts[i].authorName,
+          authorUsername: (username != null && username.isNotEmpty) ? username : _posts[i].authorUsername,
           authorAvatar: (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : _posts[i].authorAvatar,
         );
       }

@@ -33,6 +33,9 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   bool _isVideoInitialized = false;
   bool _isPlaying = true;
   bool _wasPlayingBeforeLeaving = true;
+  int _currentPlayingIndex = 0;
+  String _currentVideoUrl = '';
+  int? _lastTopPostId;
 
   @override
   void initState() {
@@ -43,11 +46,13 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 700),
     )..repeat(reverse: true);
 
-    Future.microtask(() {
-      context.read<FeedProvider>().loadFeed();
+    Future.microtask(() async {
+      final feed = context.read<FeedProvider>();
+      await feed.loadFeed();
+      if (mounted && feed.posts.isNotEmpty) {
+        _playVideoForIndex(0, feed.posts);
+      }
     });
-
-    _initVideoPlayer();
   }
 
   @override
@@ -68,34 +73,97 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         });
       }
     } else {
-      if (_wasPlayingBeforeLeaving) {
-        _videoController?.play();
-        if (mounted) {
-          setState(() {
-            _isPlaying = true;
-          });
+      final posts = context.read<FeedProvider>().posts;
+      if (posts.isNotEmpty) {
+        final targetIndex = _currentPlayingIndex.clamp(0, posts.length - 1);
+        final targetPost = posts[targetIndex];
+        final targetUrl = targetPost.videoUrl.isNotEmpty ? targetPost.videoUrl : AppAssets.videoAndrian;
+
+        if (_videoController == null || _currentVideoUrl != targetUrl) {
+          _playVideoForIndex(targetIndex, posts);
+        } else if (_wasPlayingBeforeLeaving) {
+          _videoController?.play();
+          if (mounted) {
+            setState(() {
+              _isPlaying = true;
+            });
+          }
         }
       }
     }
   }
 
-  Future<void> _initVideoPlayer() async {
-    try {
-      _videoController = VideoPlayerController.asset(AppAssets.videoAndrian);
-      await _videoController!.initialize();
-      _videoController!.setLooping(true);
-      _videoController!.setVolume(1.0);
-      if (widget.isActive) {
+  Future<void> _playVideoForIndex(int index, List<PostEntity> posts) async {
+    if (posts.isEmpty || index < 0 || index >= posts.length) return;
+    final post = posts[index];
+    final url = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
+
+    if (_currentPlayingIndex == index &&
+        _currentVideoUrl == url &&
+        _videoController != null &&
+        _isVideoInitialized) {
+      if (widget.isActive && !(_videoController!.value.isPlaying)) {
         await _videoController!.play();
+        if (mounted) setState(() => _isPlaying = true);
       }
-      if (mounted) {
+      return;
+    }
+
+    _currentPlayingIndex = index;
+    _currentVideoUrl = url;
+
+    final oldController = _videoController;
+    _videoController = null;
+    _isVideoInitialized = false;
+    if (mounted) setState(() {});
+
+    if (oldController != null) {
+      await oldController.pause();
+      await oldController.dispose();
+    }
+
+    try {
+      VideoPlayerController newController;
+      if (url.startsWith('assets/')) {
+        newController = VideoPlayerController.asset(url);
+      } else {
+        newController = VideoPlayerController.networkUrl(Uri.parse(url));
+      }
+
+      await newController.initialize();
+      await newController.setLooping(true);
+      await newController.setVolume(1.0);
+
+      if (widget.isActive) {
+        await newController.play();
+      }
+
+      if (mounted && _currentPlayingIndex == index) {
         setState(() {
+          _videoController = newController;
           _isVideoInitialized = true;
           _isPlaying = widget.isActive;
         });
+      } else {
+        newController.dispose();
       }
     } catch (e) {
-      debugPrint('Feed video player initialization note: $e');
+      debugPrint('Feed video play notice ($url): $e, fallback to andrian asset');
+      if (mounted && _currentPlayingIndex == index) {
+        try {
+          final fallback = VideoPlayerController.asset(AppAssets.videoAndrian);
+          await fallback.initialize();
+          await fallback.setLooping(true);
+          if (widget.isActive) await fallback.play();
+          if (mounted) {
+            setState(() {
+              _videoController = fallback;
+              _isVideoInitialized = true;
+              _isPlaying = widget.isActive;
+            });
+          }
+        } catch (_) {}
+      }
     }
   }
 
@@ -238,6 +306,21 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     final isFeedActive = feedProvider.isFeedActive && widget.isActive;
     final posts = feedProvider.posts;
 
+    if (posts.isNotEmpty) {
+      if (_lastTopPostId != null && posts.first.id != _lastTopPostId) {
+        _lastTopPostId = posts.first.id;
+        _currentPlayingIndex = 0;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(0);
+          }
+          _playVideoForIndex(0, posts);
+        });
+      } else if (_lastTopPostId == null) {
+        _lastTopPostId = posts.first.id;
+      }
+    }
+
     if (!isFeedActive && (_videoController?.value.isPlaying ?? false)) {
       _videoController?.pause();
     }
@@ -323,20 +406,12 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
             controller: _pageController,
             scrollDirection: Axis.vertical,
             onPageChanged: (index) {
-              if (_videoController != null && _isVideoInitialized) {
-                if (index == 0) {
-                  _videoController!.play();
-                  setState(() => _isPlaying = true);
-                } else {
-                  _videoController!.pause();
-                  setState(() => _isPlaying = false);
-                }
-              }
+              _playVideoForIndex(index, displayPosts);
             },
             itemCount: displayPosts.length,
             itemBuilder: (context, index) {
               final post = displayPosts[index];
-              return _buildFeedItem(post, feedProvider, isFirstItem: index == 0);
+              return _buildFeedItem(post, feedProvider, isCurrentItem: index == _currentPlayingIndex);
             },
           ),
 
@@ -429,7 +504,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildFeedItem(PostEntity post, FeedProvider feedProvider, {bool isFirstItem = false}) {
+  Widget _buildFeedItem(PostEntity post, FeedProvider feedProvider, {bool isCurrentItem = false}) {
     final currentPostInState = feedProvider.posts.firstWhere(
       (p) => p.id == post.id,
       orElse: () => post,
@@ -438,6 +513,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
 
     final currentUser = context.watch<AuthProvider>().currentUser;
     final isMe = currentPostInState.userId == (currentUser?.id ?? 1) ||
+        currentPostInState.authorUsername.toLowerCase() == (currentUser?.username ?? 'andrianpei').toLowerCase() ||
         currentPostInState.authorUsername.toLowerCase() == 'andrianpei';
 
     final authorAvatar = (isMe && currentUser?.avatarUrl.isNotEmpty == true)
@@ -460,16 +536,16 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           alignment: Alignment.center,
         ),
 
-        // A2. Video Player for first item (Andrian's Video)
+        // A2. Video Player for current active post
         // Wrapped with IgnorePointer so native HTML element does NOT swallow Flutter taps or trigger Edge PiP toolbar
-        if (isFirstItem && _isVideoInitialized && _videoController != null)
+        if (isCurrentItem && _isVideoInitialized && _videoController != null)
           IgnorePointer(
             child: SizedBox.expand(
               child: FittedBox(
                 fit: BoxFit.cover,
                 child: SizedBox(
-                  width: _videoController!.value.size.width,
-                  height: _videoController!.value.size.height,
+                  width: _videoController!.value.size.width > 0 ? _videoController!.value.size.width : 390,
+                  height: _videoController!.value.size.height > 0 ? _videoController!.value.size.height : 844,
                   child: VideoPlayer(_videoController!),
                 ),
               ),
@@ -501,14 +577,14 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: isFirstItem ? _togglePlayPause : null,
+            onTap: isCurrentItem ? _togglePlayPause : null,
             onDoubleTapDown: (details) => _onDoubleTap(details, currentPostInState),
             child: Container(color: Colors.transparent),
           ),
         ),
 
         // Pause Indicator in Center when video is paused
-        if (isFirstItem && !_isPlaying)
+        if (isCurrentItem && !_isPlaying)
           Center(
             child: IgnorePointer(
               child: TweenAnimationBuilder<double>(
@@ -719,30 +795,36 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 5),
 
-              // 3. Caption formatted cleanly without awkward cutoffs
-              RichText(
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.white,
-                    height: 1.25,
-                    shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
-                  ),
-                  children: [
-                    const TextSpan(
-                      text: 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik!\nTerima kasih untuk semua dukungannya ✨ ',
-                    ),
-                    TextSpan(
-                      text: '#wisuda #unpam #fyp',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white.withOpacity(0.95),
+              // 3. Dynamic Caption formatted cleanly with hashtag highlighting
+              Builder(
+                builder: (context) {
+                  final captionText = currentPostInState.caption.isNotEmpty
+                      ? currentPostInState.caption
+                      : 'Momen seru di Social Hub! ✨ #fyp';
+                  final words = captionText.split(' ');
+                  return RichText(
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.white,
+                        height: 1.25,
+                        shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
                       ),
+                      children: words.map((word) {
+                        final isTag = word.startsWith('#');
+                        return TextSpan(
+                          text: '$word ',
+                          style: TextStyle(
+                            fontWeight: isTag ? FontWeight.bold : FontWeight.normal,
+                            color: isTag ? Colors.white : Colors.white.withOpacity(0.95),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 6),
 
@@ -789,9 +871,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          isFirstItem
-                              ? 'Pencarian · andrian wisudawan terbaik'
-                              : 'Pencarian · aurel nangis liat ameena',
+                          'Pencarian · ${authorName.toLowerCase()} ${currentPostInState.caption.isNotEmpty ? currentPostInState.caption.split(' ').take(3).join(' ') : 'fyp'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 11.5, color: Colors.white),

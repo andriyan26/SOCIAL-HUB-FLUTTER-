@@ -85,6 +85,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> updateProfile({
     required int id,
     required String name,
+    String? username,
     required String bio,
     String? avatarUrl,
   }) async {
@@ -92,6 +93,7 @@ class AuthRepositoryImpl implements AuthRepository {
       'name': name,
       'bio': bio,
     };
+    if (username != null && username.isNotEmpty) data['username'] = username;
     if (avatarUrl != null) data['avatar_url'] = avatarUrl;
     final success = await localDataSource.updateUser(id, data);
     if (success) {

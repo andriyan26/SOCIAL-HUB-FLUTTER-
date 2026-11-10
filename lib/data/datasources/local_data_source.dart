@@ -56,33 +56,25 @@ class LocalDataSource {
 
   Future<bool> updateUser(int id, Map<String, dynamic> data) async {
     final updated = await db.update('users', data, where: 'id = ?', whereArgs: [id]);
-    if (data.containsKey('avatar_url')) {
-      await db.update(
-        'posts',
-        {'author_avatar': data['avatar_url']},
-        where: 'user_id = ?',
-        whereArgs: [id],
-      );
-    }
-    if (data.containsKey('name')) {
-      await db.update(
-        'posts',
-        {'author_name': data['name']},
-        where: 'user_id = ?',
-        whereArgs: [id],
-      );
+    final postUpdates = <String, dynamic>{};
+    if (data.containsKey('avatar_url')) postUpdates['author_avatar'] = data['avatar_url'];
+    if (data.containsKey('name')) postUpdates['author_name'] = data['name'];
+    if (data.containsKey('username')) postUpdates['author_username'] = data['username'];
+
+    if (postUpdates.isNotEmpty) {
+      await db.update('posts', postUpdates, where: 'user_id = ?', whereArgs: [id]);
     }
     return updated > 0;
   }
 
   // --- POSTS ---
   Future<List<PostModel>> getFeedPosts() async {
-    final results = await db.query('posts', orderBy: 'id ASC');
+    final results = await db.query('posts', orderBy: 'id DESC');
     return results.map((m) => PostModel.fromMap(m)).toList();
   }
 
   Future<List<PostModel>> getUserPosts(int userId) async {
-    final results = await db.query('posts', where: 'user_id = ?', whereArgs: [userId]);
+    final results = await db.query('posts', where: 'user_id = ?', whereArgs: [userId], orderBy: 'id DESC');
     return results.map((m) => PostModel.fromMap(m)).toList();
   }
 

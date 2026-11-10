@@ -95,9 +95,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateProfile({required String name, required String bio, String? avatarUrl}) async {
+  Future<void> updateProfile({required String name, String? username, required String bio, String? avatarUrl}) async {
     final id = _currentUser?.id ?? 1;
-    final username = _currentUser?.username ?? 'andrianpei';
+    final finalUsername = (username != null && username.isNotEmpty)
+        ? username
+        : (_currentUser?.username ?? 'andrianpei');
     final email = _currentUser?.email ?? 'andriandowehz123@gmail.com';
     final newAvatar = (avatarUrl != null && avatarUrl.isNotEmpty)
         ? avatarUrl
@@ -106,7 +108,7 @@ class AuthProvider extends ChangeNotifier {
     // 1. Optimistic immediate state update so all screens (Profile, Beranda, etc.) update with 0ms delay
     _currentUser = UserEntity(
       id: id,
-      username: username,
+      username: finalUsername,
       name: name.isNotEmpty ? name : (_currentUser?.name ?? 'Andrian Pei'),
       email: email,
       avatarUrl: newAvatar,
@@ -123,6 +125,7 @@ class AuthProvider extends ChangeNotifier {
       await authRepository.updateProfile(
         id: id,
         name: _currentUser!.name,
+        username: _currentUser!.username,
         bio: _currentUser!.bio,
         avatarUrl: _currentUser!.avatarUrl,
       );
