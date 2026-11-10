@@ -18,11 +18,12 @@ class AnimatedSplashScreen extends StatefulWidget {
 
 class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with TickerProviderStateMixin {
   // Master Choreographed Controllers (All VSYNC synchronized for 60 FPS butter-smooth motion)
-  late AnimationController _traceController;       // Phase 1: Stroke tracing
-  late AnimationController _impactController;      // Phase 2: Impact flash & solid expansion
-  late AnimationController _brandController;       // Phase 3: Brand reveal & expanding neon line
+  late AnimationController _traceController;        // Phase 1: Stroke tracing
+  late AnimationController _impactController;       // Phase 2: Impact flash & solid expansion
+  late AnimationController _brandController;        // Phase 3: Brand reveal & expanding neon line
+  late AnimationController _zoomController;         // Phase 4: Cinematic zoom-in & smooth fade
   late AnimationController _ambientPulseController; // Subtle breathing glow
-  late AnimationController _progressController;    // Bottom progress bar (60 FPS)
+  late AnimationController _progressController;     // Bottom progress bar (60 FPS)
 
   // Animated Values
   late Animation<double> _traceAnimation;
@@ -32,6 +33,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
   late Animation<double> _brandFade;
   late Animation<double> _brandSlide;
   late Animation<double> _lineWidth;
+  late Animation<double> _zoomScale;
+  late Animation<double> _zoomOpacity;
 
   // Micro glitch jitter
   Offset _glitchOffset = Offset.zero;
@@ -67,58 +70,70 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
       );
     });
 
-    // 3. Phase 1: Stroke Tracing (1500ms)
+    // 3. Phase 1: Stroke Tracing (1350ms)
     _traceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1350),
     );
     _traceAnimation = CurvedAnimation(
       parent: _traceController,
       curve: Curves.easeInOutCubic,
     );
 
-    // 4. Phase 2: Impact Flash & Solid Fill Expansion (750ms)
+    // 4. Phase 2: Impact Flash & Solid Fill Expansion (650ms)
     _impactController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 750),
+      duration: const Duration(milliseconds: 650),
     );
     _fillAnimation = CurvedAnimation(
       parent: _impactController,
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOutCubic,
     );
     _flashAnimation = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.85), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 0.85, end: 0.0), weight: 70),
-    ]).animate(CurvedAnimation(parent: _impactController, curve: Curves.easeOut));
+    ]).animate(CurvedAnimation(parent: _impactController, curve: Curves.easeInOut));
 
     _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.07), weight: 30),
-      TweenSequenceItem(tween: Tween(begin: 1.07, end: 1.0), weight: 70),
-    ]).animate(CurvedAnimation(parent: _impactController, curve: Curves.easeOutBack));
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.06), weight: 35),
+      TweenSequenceItem(tween: Tween(begin: 1.06, end: 1.0), weight: 65),
+    ]).animate(CurvedAnimation(parent: _impactController, curve: Curves.easeInOut));
 
-    // 5. Phase 3: Brand Reveal & Glowing Underline (800ms)
+    // 5. Phase 3: Brand Reveal & Glowing Underline (750ms)
     _brandController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 750),
     );
     _brandFade = CurvedAnimation(parent: _brandController, curve: Curves.easeIn);
-    _brandSlide = Tween<double>(begin: 20.0, end: 0.0).animate(
+    _brandSlide = Tween<double>(begin: 18.0, end: 0.0).animate(
       CurvedAnimation(parent: _brandController, curve: Curves.easeOutCubic),
     );
     _lineWidth = Tween<double>(begin: 0.0, end: 175.0).animate(
       CurvedAnimation(parent: _brandController, curve: Curves.easeOutCubic),
     );
 
-    // 6. Ambient Breathing Glow
+    // 6. Phase 4: Cinematic Zoom-In & Fade Out Transition (600ms, from concept video)
+    _zoomController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _zoomScale = Tween<double>(begin: 1.0, end: 1.35).animate(
+      CurvedAnimation(parent: _zoomController, curve: Curves.easeInOutCubic),
+    );
+    _zoomOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _zoomController, curve: Curves.easeInCubic),
+    );
+
+    // 7. Ambient Breathing Glow
     _ambientPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat(reverse: true);
 
-    // 7. Butter-smooth 60 FPS Bottom Progress Bar (Total 4000ms)
+    // 8. Butter-smooth 60 FPS Bottom Progress Bar (Total 3750ms)
     _progressController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 4000),
+      duration: const Duration(milliseconds: 3750),
     );
     _progressController.forward();
     _progressController.addStatusListener((status) {
@@ -127,12 +142,21 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
       }
     });
 
-    // Sequence Choreography: Tracing -> Impact -> Brand
+    // Sequence Choreography: Tracing -> Impact -> Brand -> Zoom Out -> Complete
     _traceController.forward().then((_) {
       if (!mounted) return;
       _impactController.forward().then((_) {
         if (!mounted) return;
-        _brandController.forward();
+        _brandController.forward().then((_) {
+          if (!mounted) return;
+          Future.delayed(const Duration(milliseconds: 400), () {
+            if (!mounted) return;
+            _zoomController.forward().then((_) {
+              if (!mounted) return;
+              _skip();
+            });
+          });
+        });
       });
     });
 
@@ -173,6 +197,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
     _traceController.dispose();
     _impactController.dispose();
     _brandController.dispose();
+    _zoomController.dispose();
     _ambientPulseController.dispose();
     _progressController.dispose();
     super.dispose();
@@ -265,110 +290,119 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> with Ticker
                   _traceController,
                   _impactController,
                   _brandController,
+                  _zoomController,
                   _ambientPulseController,
                 ]),
                 builder: (context, _) {
-                  final glow = 0.90 + 0.25 * _ambientPulseController.value;
-                  return Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Dynamic 3D Chromatic SH Emblem
-                        SizedBox(
-                          width: 220,
-                          height: 150,
-                          child: CustomPaint(
-                            painter: SHLogoPainter(
-                              progress: _traceAnimation.value,
-                              glowIntensity: glow,
-                              traceProgress: _traceAnimation.value,
-                              fillProgress: _fillAnimation.value,
-                              flashIntensity: _flashAnimation.value,
-                              glitchOffset: _glitchOffset,
+                  final glow = (0.90 + 0.25 * _ambientPulseController.value).clamp(0.0, 1.0);
+                  final combinedScale = (_scaleAnimation.value * _zoomScale.value);
+                  final combinedOpacity = _zoomOpacity.value.clamp(0.0, 1.0);
+
+                  return Opacity(
+                    opacity: combinedOpacity,
+                    child: Transform.scale(
+                      scale: combinedScale,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Dynamic 3D Chromatic SH Emblem
+                          RepaintBoundary(
+                            child: SizedBox(
+                              width: 220,
+                              height: 150,
+                              child: CustomPaint(
+                                painter: SHLogoPainter(
+                                  progress: _traceAnimation.value,
+                                  glowIntensity: glow,
+                                  traceProgress: _traceAnimation.value,
+                                  fillProgress: _fillAnimation.value,
+                                  flashIntensity: _flashAnimation.value,
+                                  glitchOffset: _glitchOffset,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 26),
+                          const SizedBox(height: 26),
 
-                        // Brand Title & Slogan
-                        Opacity(
-                          opacity: _brandFade.value,
-                          child: Transform.translate(
-                            offset: Offset(0, _brandSlide.value),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'S O C I A L   H U B',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.white,
-                                    letterSpacing: 6.0,
-                                    shadows: [
-                                      Shadow(
-                                        offset: Offset(-2.5 + _glitchOffset.dx * 0.6, -1.2),
-                                        color: const Color(0xFF00F2FE).withOpacity(0.85),
-                                        blurRadius: 8,
-                                      ),
-                                      Shadow(
-                                        offset: Offset(2.8 + _glitchOffset.dx * 0.6, 1.6),
-                                        color: const Color(0xFFFE2C55).withOpacity(0.85),
-                                        blurRadius: 8,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-
-                                // Glowing Horizontal Neon Line Expanding from Center
-                                Container(
-                                  width: _lineWidth.value,
-                                  height: 2.5,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(2),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Colors.transparent,
-                                        Color(0xFF00F2FE),
-                                        Colors.white,
-                                        Color(0xFFFE2C55),
-                                        Colors.transparent,
+                          // Brand Title & Slogan
+                          Opacity(
+                            opacity: _brandFade.value.clamp(0.0, 1.0),
+                            child: Transform.translate(
+                              offset: Offset(0, _brandSlide.value),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'S O C I A L   H U B',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      letterSpacing: 6.0,
+                                      shadows: [
+                                        Shadow(
+                                          offset: Offset(-2.5 + _glitchOffset.dx * 0.6, -1.2),
+                                          color: const Color(0xFF00F2FE).withOpacity(0.85),
+                                          blurRadius: 8,
+                                        ),
+                                        Shadow(
+                                          offset: Offset(2.8 + _glitchOffset.dx * 0.6, 1.6),
+                                          color: const Color(0xFFFE2C55).withOpacity(0.85),
+                                          blurRadius: 8,
+                                        ),
                                       ],
-                                      stops: [0.0, 0.25, 0.5, 0.75, 1.0],
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF00F2FE).withOpacity(0.6),
-                                        blurRadius: 6,
-                                        spreadRadius: 0.5,
-                                      ),
-                                      BoxShadow(
-                                        color: const Color(0xFFFE2C55).withOpacity(0.6),
-                                        blurRadius: 6,
-                                        spreadRadius: 0.5,
-                                      ),
-                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 14),
+                                  const SizedBox(height: 12),
 
-                                // Slogan
-                                Text(
-                                  'Jelajahi Kreativitas Tanpa Batas',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white.withOpacity(0.70),
-                                    letterSpacing: 1.2,
+                                  // Glowing Horizontal Neon Line Expanding from Center
+                                  Container(
+                                    width: _lineWidth.value.clamp(0.0, 200.0),
+                                    height: 2.5,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(2),
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Colors.transparent,
+                                          Color(0xFF00F2FE),
+                                          Colors.white,
+                                          Color(0xFFFE2C55),
+                                          Colors.transparent,
+                                        ],
+                                        stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF00F2FE).withOpacity(0.6),
+                                          blurRadius: 6,
+                                          spreadRadius: 0.5,
+                                        ),
+                                        BoxShadow(
+                                          color: const Color(0xFFFE2C55).withOpacity(0.6),
+                                          blurRadius: 6,
+                                          spreadRadius: 0.5,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 14),
+
+                                  // Slogan
+                                  Text(
+                                    'Jelajahi Kreativitas Tanpa Batas',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withOpacity(0.70),
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },

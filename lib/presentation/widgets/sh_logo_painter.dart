@@ -24,14 +24,20 @@ class SHLogoPainter extends CustomPainter {
     this.glitchOffset = Offset.zero,
   });
 
+  Color _safeColor(Color color, double opacity) {
+    return color.withOpacity(opacity.clamp(0.0, 1.0));
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
 
-    // Resolve stage values
-    final effectiveTrace = traceProgress ?? (progress < 1.0 ? progress : 1.0);
-    final effectiveFill = fillProgress ?? (progress >= 1.0 ? 1.0 : 0.0);
+    // Resolve stage values with strict 0.0 - 1.0 clamping
+    final effectiveTrace = (traceProgress ?? (progress < 1.0 ? progress : 1.0)).clamp(0.0, 1.0);
+    final effectiveFill = (fillProgress ?? (progress >= 1.0 ? 1.0 : 0.0)).clamp(0.0, 1.0);
+    final safeGlow = glowIntensity.clamp(0.0, 1.0);
+    final safeFlash = flashIntensity.clamp(0.0, 1.0);
 
     // Normalize coordinates to 220x150 reference box
     final scaleX = w / 220.0;
@@ -39,6 +45,9 @@ class SHLogoPainter extends CustomPainter {
 
     canvas.save();
     canvas.scale(scaleX, scaleY);
+
+    // Clip to safe margin bounds
+    canvas.clipRect(const Rect.fromLTWH(-50, -50, 320, 250));
 
     // Apply slight futuristic italic slant (~8 degrees)
     canvas.save();
@@ -54,21 +63,21 @@ class SHLogoPainter extends CustomPainter {
     // STAGE 1: STROKE TRACING WITH CONCENTRIC GLOW (NO MASKFILTER)
     // -------------------------------------------------------------
     if (effectiveTrace < 1.0) {
-      _paintStrokeTracing(canvas, pathS, pathH, effectiveTrace);
+      _paintStrokeTracing(canvas, pathS, pathH, effectiveTrace, safeGlow);
     }
 
     // -------------------------------------------------------------
     // STAGE 2: SOLID BOLD CHROMATIC GLYPHS WITH CHROME-WHITE CORE
     // -------------------------------------------------------------
     if (effectiveFill > 0.0) {
-      _paintSolidChromatic(canvas, pathS, pathH, pathArrow, effectiveFill);
+      _paintSolidChromatic(canvas, pathS, pathH, pathArrow, effectiveFill, safeGlow);
     }
 
     // -------------------------------------------------------------
     // STAGE 3: CONCENTRIC WHITE FLASH BLOOM (ZERO MASKFILTER / NO GREY)
     // -------------------------------------------------------------
-    if (flashIntensity > 0.0) {
-      _paintFlashBloom(canvas, const Offset(110, 75), flashIntensity);
+    if (safeFlash > 0.0) {
+      _paintFlashBloom(canvas, const Offset(110, 75), safeFlash);
     }
 
     canvas.restore(); // Undo slant
@@ -114,7 +123,7 @@ class SHLogoPainter extends CustomPainter {
       ..close();
   }
 
-  void _paintStrokeTracing(Canvas canvas, Path pathS, Path pathH, double trace) {
+  void _paintStrokeTracing(Canvas canvas, Path pathS, Path pathH, double trace, double glow) {
     final metricsS = pathS.computeMetrics().toList();
     final metricsH = pathH.computeMetrics().toList();
 
@@ -129,13 +138,13 @@ class SHLogoPainter extends CustomPainter {
         extracted,
         const Color(0xFF00F2FE),
         3.5,
-        glowIntensity,
+        glow,
       );
 
       // Leading Cyan Spark Head
       final tangent = metric.getTangentForOffset(len);
       if (tangent != null) {
-        _drawSparkHead(canvas, tangent.position, const Color(0xFF00F2FE), glowIntensity);
+        _drawSparkHead(canvas, tangent.position, const Color(0xFF00F2FE), glow);
       }
     }
 
@@ -150,18 +159,18 @@ class SHLogoPainter extends CustomPainter {
         extracted,
         const Color(0xFFFE2C55),
         3.5,
-        glowIntensity,
+        glow,
       );
 
       // Leading Magenta Spark Head
       final tangent = metric.getTangentForOffset(len);
       if (tangent != null) {
-        _drawSparkHead(canvas, tangent.position, const Color(0xFFFE2C55), glowIntensity);
+        _drawSparkHead(canvas, tangent.position, const Color(0xFFFE2C55), glow);
       }
     }
   }
 
-  void _paintSolidChromatic(Canvas canvas, Path pathS, Path pathH, Path pathArrow, double fill) {
+  void _paintSolidChromatic(Canvas canvas, Path pathS, Path pathH, Path pathArrow, double fill, double glow) {
     // Dynamic heavy-weight stroke thickness: expands smoothly to bold block
     final strokeW = 4.0 + (17.0 * fill);
 
@@ -176,18 +185,18 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawPath(
       pathS,
       Paint()
-        ..color = magentaColor.withOpacity(0.18 * glowIntensity * fill)
+        ..color = _safeColor(magentaColor, 0.18 * glow * fill)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW + 16 * glowIntensity
+        ..strokeWidth = strokeW + 16 * glow
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
     canvas.drawPath(
       pathH,
       Paint()
-        ..color = magentaColor.withOpacity(0.18 * glowIntensity * fill)
+        ..color = _safeColor(magentaColor, 0.18 * glow * fill)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW + 16 * glowIntensity
+        ..strokeWidth = strokeW + 16 * glow
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
@@ -196,32 +205,32 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawPath(
       pathS,
       Paint()
-        ..color = magentaColor.withOpacity(0.40 * glowIntensity * fill)
+        ..color = _safeColor(magentaColor, 0.40 * glow * fill)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW + 8 * glowIntensity
+        ..strokeWidth = strokeW + 8 * glow
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
     canvas.drawPath(
       pathH,
       Paint()
-        ..color = magentaColor.withOpacity(0.40 * glowIntensity * fill)
+        ..color = _safeColor(magentaColor, 0.40 * glow * fill)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW + 8 * glowIntensity
+        ..strokeWidth = strokeW + 8 * glow
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
 
     // Solid core pass
     final magentaCore = Paint()
-      ..color = const Color(0xFFFF2A6D).withOpacity(fill)
+      ..color = _safeColor(const Color(0xFFFF2A6D), fill)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeW + 2.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(pathS, magentaCore);
     canvas.drawPath(pathH, magentaCore);
-    canvas.drawPath(pathArrow, Paint()..color = const Color(0xFFFF2A6D).withOpacity(fill));
+    canvas.drawPath(pathArrow, Paint()..color = _safeColor(const Color(0xFFFF2A6D), fill));
 
     canvas.restore();
 
@@ -236,18 +245,18 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawPath(
       pathS,
       Paint()
-        ..color = cyanColor.withOpacity(0.18 * glowIntensity * fill)
+        ..color = _safeColor(cyanColor, 0.18 * glow * fill)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW + 16 * glowIntensity
+        ..strokeWidth = strokeW + 16 * glow
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
     canvas.drawPath(
       pathH,
       Paint()
-        ..color = cyanColor.withOpacity(0.18 * glowIntensity * fill)
+        ..color = _safeColor(cyanColor, 0.18 * glow * fill)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW + 16 * glowIntensity
+        ..strokeWidth = strokeW + 16 * glow
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
@@ -256,32 +265,32 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawPath(
       pathS,
       Paint()
-        ..color = cyanColor.withOpacity(0.40 * glowIntensity * fill)
+        ..color = _safeColor(cyanColor, 0.40 * glow * fill)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW + 8 * glowIntensity
+        ..strokeWidth = strokeW + 8 * glow
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
     canvas.drawPath(
       pathH,
       Paint()
-        ..color = cyanColor.withOpacity(0.40 * glowIntensity * fill)
+        ..color = _safeColor(cyanColor, 0.40 * glow * fill)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW + 8 * glowIntensity
+        ..strokeWidth = strokeW + 8 * glow
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
 
     // Solid core pass
     final cyanCore = Paint()
-      ..color = cyanColor.withOpacity(fill)
+      ..color = _safeColor(cyanColor, fill)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeW + 2.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(pathS, cyanCore);
     canvas.drawPath(pathH, cyanCore);
-    canvas.drawPath(pathArrow, Paint()..color = cyanColor.withOpacity(fill));
+    canvas.drawPath(pathArrow, Paint()..color = _safeColor(cyanColor, fill));
 
     canvas.restore();
 
@@ -289,7 +298,7 @@ class SHLogoPainter extends CustomPainter {
     // 3. Crisp Bright Solid White Center Core
     // ---------------------------------------------------------
     final whitePaint = Paint()
-      ..color = Colors.white.withOpacity(fill)
+      ..color = _safeColor(Colors.white, fill)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeW
       ..strokeCap = StrokeCap.round
@@ -298,11 +307,11 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawPath(pathH, whitePaint);
 
     // White Arrow Body
-    canvas.drawPath(pathArrow, Paint()..color = Colors.white.withOpacity(fill));
+    canvas.drawPath(pathArrow, Paint()..color = _safeColor(Colors.white, fill));
 
     // Outer Crisp Edge Contour
     final edgePaint = Paint()
-      ..color = Colors.white.withOpacity(0.95 * fill)
+      ..color = _safeColor(Colors.white, 0.95 * fill)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round
@@ -317,7 +326,7 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = color.withOpacity(0.15 * glow)
+        ..color = _safeColor(color, 0.15 * glow)
         ..style = PaintingStyle.stroke
         ..strokeWidth = width + 14 * glow
         ..strokeCap = StrokeCap.round
@@ -327,7 +336,7 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = color.withOpacity(0.35 * glow)
+        ..color = _safeColor(color, 0.35 * glow)
         ..style = PaintingStyle.stroke
         ..strokeWidth = width + 8 * glow
         ..strokeCap = StrokeCap.round
@@ -337,7 +346,7 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = color.withOpacity(0.85)
+        ..color = _safeColor(color, 0.85)
         ..style = PaintingStyle.stroke
         ..strokeWidth = width + 3.0
         ..strokeCap = StrokeCap.round
@@ -361,19 +370,19 @@ class SHLogoPainter extends CustomPainter {
     canvas.drawCircle(
       pos,
       16 * glow,
-      Paint()..color = color.withOpacity(0.18 * glow),
+      Paint()..color = _safeColor(color, 0.18 * glow),
     );
     // Layer 2: Mid aura
     canvas.drawCircle(
       pos,
       10 * glow,
-      Paint()..color = color.withOpacity(0.40 * glow),
+      Paint()..color = _safeColor(color, 0.40 * glow),
     );
     // Layer 3: Saturated core
     canvas.drawCircle(
       pos,
       5.5,
-      Paint()..color = color.withOpacity(0.90),
+      Paint()..color = _safeColor(color, 0.90),
     );
     // Layer 4: White hot point
     canvas.drawCircle(
@@ -384,26 +393,27 @@ class SHLogoPainter extends CustomPainter {
   }
 
   void _paintFlashBloom(Canvas canvas, Offset center, double intensity) {
+    final safeI = intensity.clamp(0.0, 1.0);
     // Concentric pure white expansion (NO MaskFilter, zero grey box)
     canvas.drawCircle(
       center,
-      110 * intensity,
-      Paint()..color = Colors.white.withOpacity(0.06 * intensity),
+      110 * safeI,
+      Paint()..color = _safeColor(Colors.white, 0.06 * safeI),
     );
     canvas.drawCircle(
       center,
-      70 * intensity,
-      Paint()..color = Colors.white.withOpacity(0.16 * intensity),
+      70 * safeI,
+      Paint()..color = _safeColor(Colors.white, 0.16 * safeI),
     );
     canvas.drawCircle(
       center,
-      36 * intensity,
-      Paint()..color = Colors.white.withOpacity(0.38 * intensity),
+      36 * safeI,
+      Paint()..color = _safeColor(Colors.white, 0.38 * safeI),
     );
     canvas.drawCircle(
       center,
-      15 * intensity,
-      Paint()..color = Colors.white.withOpacity(0.85 * intensity),
+      15 * safeI,
+      Paint()..color = _safeColor(Colors.white, 0.85 * safeI),
     );
   }
 

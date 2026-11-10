@@ -33,6 +33,17 @@ void main() async {
     ),
   );
 
+  // Eliminate Flutter release-mode default grey screen
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    debugPrint('SocialHub Caught Exception: ${details.exception}');
+    return const ColoredBox(
+      color: Color(0xFF07080C),
+      child: Center(
+        child: SizedBox.shrink(),
+      ),
+    );
+  };
+
   final localDataSource = LocalDataSource();
   final authRepository = AuthRepositoryImpl(localDataSource: localDataSource);
   final postRepository = PostRepositoryImpl(localDataSource: localDataSource);
