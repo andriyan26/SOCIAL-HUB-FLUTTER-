@@ -119,5 +119,10 @@ class PostRepositoryImpl implements PostRepository {
       'created_at': now,
     });
   }
+
+  @override
+  Future<void> deletePost(int postId) async {
+    await localDataSource.deletePost(postId);
+  }
 }
 

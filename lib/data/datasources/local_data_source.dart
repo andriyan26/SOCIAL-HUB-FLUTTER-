@@ -143,6 +143,10 @@ class LocalDataSource {
     return PostModel.fromMap({...postData, 'id': id});
   }
 
+  Future<void> deletePost(int postId) async {
+    await db.delete('posts', where: 'id = ?', whereArgs: [postId]);
+  }
+
   // --- COMMENTS ---
   Future<List<CommentModel>> getComments(int postId) async {
     final results = await db.query('comments', where: 'post_id = ?', whereArgs: [postId]);

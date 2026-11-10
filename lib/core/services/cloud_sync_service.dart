@@ -22,8 +22,11 @@ class CloudSyncService {
         if (jsonResponse['data'] != null) {
           final data = Map<String, dynamic>.from(jsonResponse['data']);
           final avatar = data['avatar_url']?.toString() ?? '';
-          // Ensure avatar is never a dead blob URL or purple initial
-          if (avatar.startsWith('blob:') || avatar.isEmpty || avatar == 'purple_a') {
+          
+          if (avatar == 'custom_avatar') {
+            // Keep user's local custom avatar so it is never overwritten
+            data.remove('avatar_url');
+          } else if (avatar.startsWith('blob:') || avatar.isEmpty) {
             data['avatar_url'] = AppAssets.imgProfile;
           }
           return data;
@@ -55,10 +58,12 @@ class CloudSyncService {
         }
       } catch (_) {}
 
-      // Clean avatar to ensure safe fallback
-      final safeAvatar = (avatarUrl.startsWith('blob:') || avatarUrl.isEmpty || avatarUrl == 'purple_a')
-          ? AppAssets.imgProfile
-          : avatarUrl;
+      // Keep cloud payload lightweight (< 500 chars per column) to prevent HTTP 500 error
+      final safeAvatar = (avatarUrl.startsWith('data:') || avatarUrl.length > 500)
+          ? 'custom_avatar'
+          : (avatarUrl.startsWith('blob:') || avatarUrl.isEmpty)
+              ? AppAssets.imgProfile
+              : avatarUrl;
 
       final payload = jsonEncode({
         'name': 'SocialHub_Andrian_Profile',
@@ -135,14 +140,22 @@ class CloudSyncService {
 
       final List<dynamic> existingPosts = (currentData['posts'] is List) ? List.from(currentData['posts']) : [];
 
-      // Avoid duplicate post IDs
+      // Avoid payload bloat: Keep thumbnail & video paths within character limits
+      final safeThumbnail = (post.thumbnailPath.startsWith('data:') || post.thumbnailPath.length > 500)
+          ? AppAssets.imgFeed
+          : (post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgFeed);
+
+      final safeVideo = (post.videoUrl.startsWith('blob:') || post.videoUrl.isEmpty)
+          ? AppAssets.videoLanding
+          : post.videoUrl;
+
       final postMap = {
         'id': post.id,
         'user_id': post.userId,
         'author_name': post.authorName,
         'author_username': post.authorUsername,
-        'author_avatar': post.authorAvatar,
-        'video_url': post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoLanding,
+        'author_avatar': post.authorAvatar.length > 500 ? AppAssets.imgProfile : post.authorAvatar,
+        'video_url': safeVideo,
         'caption': post.caption,
         'music_title': post.musicTitle,
         'likes_count': post.likesCount,
@@ -154,7 +167,7 @@ class CloudSyncService {
         'is_reposted': post.isReposted ? 1 : 0,
         'is_private': post.isPrivate ? 1 : 0,
         'view_count': post.viewCount,
-        'thumbnail_path': post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgFeed,
+        'thumbnail_path': safeThumbnail,
         'created_at': post.createdAt,
       };
 
@@ -180,6 +193,47 @@ class CloudSyncService {
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Notice syncing post to cloud: $e');
+      return false;
+    }
+  }
+
+  /// Delete post from cloud database so it disappears across all devices
+  static Future<bool> deleteCloudPost(int postId) async {
+    try {
+      final current = await http.get(Uri.parse(_cloudEndpoint)).timeout(const Duration(seconds: 5));
+      if (current.statusCode != 200) return false;
+
+      final decoded = jsonDecode(current.body);
+      if (decoded['data'] == null) return false;
+
+      final currentData = Map<String, dynamic>.from(decoded['data']);
+      final List<dynamic> existingPosts = (currentData['posts'] is List) ? List.from(currentData['posts']) : [];
+
+      existingPosts.removeWhere((p) {
+        final pid = p['id'] is int ? p['id'] as int : int.tryParse(p['id'].toString()) ?? 0;
+        return pid == postId;
+      });
+
+      currentData['posts'] = existingPosts;
+      currentData['updated_at'] = DateTime.now().toIso8601String();
+
+      final payload = jsonEncode({
+        'name': 'SocialHub_Andrian_Profile',
+        'data': currentData,
+      });
+
+      final response = await http.put(
+        Uri.parse(_cloudEndpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: payload,
+      ).timeout(const Duration(seconds: 8));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Notice deleting cloud post: $e');
       return false;
     }
   }

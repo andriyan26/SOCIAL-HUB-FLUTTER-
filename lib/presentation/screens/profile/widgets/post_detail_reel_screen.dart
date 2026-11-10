@@ -14,6 +14,7 @@ import 'package:social_hub/presentation/screens/feed/widgets/share_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/rotating_music_disc.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'package:social_hub/presentation/widgets/smart_media_image.dart';
+import 'package:social_hub/core/services/media_store/web_media_store.dart';
 
 class PostDetailReelScreen extends StatefulWidget {
   final List<PostEntity> posts;
@@ -48,7 +49,7 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
     _initializeCurrentVideo();
   }
 
-  void _initializeCurrentVideo() {
+  void _initializeCurrentVideo() async {
     try {
       _videoController?.setVolume(0.0);
       _videoController?.pause();
@@ -58,7 +59,11 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
 
     if (widget.posts.isNotEmpty && _currentIndex < widget.posts.length) {
       final post = widget.posts[_currentIndex];
-      final videoUrl = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
+      String videoUrl = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoLanding;
+      final storedUrl = await WebMediaStore.getPostVideoUrl(post.id);
+      if (storedUrl != null && storedUrl.isNotEmpty) {
+        videoUrl = storedUrl;
+      }
 
       VideoPlayerController controller;
       if (videoUrl.startsWith('assets/')) {
@@ -95,6 +100,66 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
         } catch (_) {}
       });
     }
+  }
+
+  void _confirmDeletePost(PostEntity post) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 24),
+            SizedBox(width: 8),
+            Text('Hapus Video?', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Video ini akan dihapus secara permanen dari Beranda dan Profil Anda.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+              
+              await context.read<ProfileProvider>().deletePost(post.id);
+              if (mounted) {
+                await context.read<FeedProvider>().deletePost(post.id);
+              }
+              
+              AppAudioService.instance.playPopSound();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('🗑️ Video berhasil dihapus secara permanen.'),
+                      ],
+                    ),
+                    backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Hapus Video', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -354,6 +419,26 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Delete Button for own post
+                        if (isMe)
+                          GestureDetector(
+                            onTap: () => _confirmDeletePost(currentPostInState),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withOpacity(0.85),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white24, width: 0.8),
+                              ),
+                              child: const Icon(
+                                Icons.delete_forever_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+
                         // Privacy Lock/Unlock Toggle for own post
                         if (isMe)
                           GestureDetector(

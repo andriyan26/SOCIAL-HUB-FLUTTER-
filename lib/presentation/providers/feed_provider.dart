@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/services/cloud_sync_service.dart';
+import 'package:social_hub/core/services/media_store/web_media_store.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/domain/repositories/post_repository.dart';
 
@@ -99,8 +100,15 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final loaded = await postRepository.getFeedPosts();
+      PostEntity restoreThumb(PostEntity p) {
+        final localThumb = WebMediaStore.getPostThumbnail(p.id);
+        if (localThumb != null && localThumb.isNotEmpty) {
+          return p.copyWith(thumbnailPath: localThumb);
+        }
+        return p;
+      }
       if (loaded.isNotEmpty) {
-        _posts = loaded;
+        _posts = loaded.map(restoreThumb).toList();
       }
     } catch (e) {
       debugPrint('Error loading feed: $e');
@@ -173,6 +181,19 @@ class FeedProvider extends ChangeNotifier {
         debugPrint('Notice saving post to repository in FeedProvider: $e');
       }
     }
+  }
+
+  Future<void> deletePost(int postId) async {
+    _posts.removeWhere((p) => p.id == postId);
+    if (_activePostIndex >= _posts.length && _posts.isNotEmpty) {
+      _activePostIndex = _posts.length - 1;
+    }
+    notifyListeners();
+    try {
+      await postRepository.deletePost(postId);
+    } catch (_) {}
+    CloudSyncService.deleteCloudPost(postId);
+    WebMediaStore.deletePostVideo(postId);
   }
 
   void updateAuthorAvatar(int userId, String newAvatar) {

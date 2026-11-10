@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/services/cloud_sync_service.dart';
+import 'package:social_hub/core/services/media_store/web_media_store.dart';
 import 'package:social_hub/domain/entities/user_entity.dart';
 import 'package:social_hub/domain/repositories/auth_repository.dart';
 
@@ -26,7 +28,11 @@ class AuthProvider extends ChangeNotifier {
     try {
       final user = await authRepository.getCurrentUser();
       if (user != null) {
-        _currentUser = user;
+        final customAvatar = WebMediaStore.getCustomAvatar();
+        final effectiveAvatar = (customAvatar != null && customAvatar.isNotEmpty)
+            ? customAvatar
+            : user.avatarUrl;
+        _currentUser = user.copyWith(avatarUrl: effectiveAvatar);
         _status = AuthStatus.authenticated;
         _syncFromCloudBackground();
       } else {
@@ -51,15 +57,25 @@ class AuthProvider extends ChangeNotifier {
           bool needsUpdate = false;
           if (cloudName.isNotEmpty && cloudName != _currentUser!.name) needsUpdate = true;
           if (cloudBio.isNotEmpty && cloudBio != _currentUser!.bio) needsUpdate = true;
-          if (cloudAvatar.isNotEmpty && cloudAvatar != _currentUser!.avatarUrl) needsUpdate = true;
           if (cloudUsername.isNotEmpty && cloudUsername != _currentUser!.username) needsUpdate = true;
+
+          // Never overwrite a custom base64 avatar with default cloud asset!
+          String effectiveAvatar = _currentUser!.avatarUrl;
+          if (cloudAvatar.isNotEmpty && cloudAvatar != _currentUser!.avatarUrl) {
+            final isLocalCustom = _currentUser!.avatarUrl.startsWith('data:');
+            final isCloudDefault = (cloudAvatar == AppAssets.imgProfile || cloudAvatar.isEmpty);
+            if (!isLocalCustom && !isCloudDefault) {
+              effectiveAvatar = cloudAvatar;
+              needsUpdate = true;
+            }
+          }
 
           if (needsUpdate) {
             _currentUser = _currentUser!.copyWith(
               name: cloudName.isNotEmpty ? cloudName : _currentUser!.name,
               username: cloudUsername.isNotEmpty ? cloudUsername : _currentUser!.username,
               bio: cloudBio.isNotEmpty ? cloudBio : _currentUser!.bio,
-              avatarUrl: cloudAvatar.isNotEmpty ? cloudAvatar : _currentUser!.avatarUrl,
+              avatarUrl: effectiveAvatar,
             );
             notifyListeners();
             await authRepository.updateProfile(
@@ -88,7 +104,11 @@ class AuthProvider extends ChangeNotifier {
 
       final user = await authRepository.login(usernameOrEmail, password);
       if (user != null) {
-        _currentUser = user;
+        final customAvatar = WebMediaStore.getCustomAvatar();
+        final effectiveAvatar = (customAvatar != null && customAvatar.isNotEmpty)
+            ? customAvatar
+            : user.avatarUrl;
+        _currentUser = user.copyWith(avatarUrl: effectiveAvatar);
         _status = AuthStatus.authenticated;
         notifyListeners();
         _syncFromCloudBackground();
@@ -146,6 +166,11 @@ class AuthProvider extends ChangeNotifier {
     final newAvatar = (avatarUrl != null && avatarUrl.isNotEmpty)
         ? avatarUrl
         : (_currentUser?.avatarUrl ?? '');
+
+    // Persist custom avatar to WebMediaStore / localStorage
+    if (newAvatar.isNotEmpty) {
+      WebMediaStore.saveCustomAvatar(newAvatar);
+    }
 
     // 1. Optimistic immediate state update so all screens (Profile, Beranda, etc.) update with 0ms delay
     _currentUser = UserEntity(

@@ -11,6 +11,7 @@ import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'package:social_hub/presentation/widgets/smart_media_image.dart';
+import 'package:social_hub/core/services/media_store/web_media_store.dart';
 
 class VideoPublishPreviewScreen extends StatefulWidget {
   final String videoUrl;
@@ -202,6 +203,10 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
       musicTitle: newPost.musicTitle,
       thumbnailPath: newPost.thumbnailPath,
     );
+
+    // Save to IndexedDB and localStorage so video never disappears after refresh
+    await WebMediaStore.savePostVideo(savedPost.id, WebMediaStore.getCachedSelectedVideoBlob());
+    WebMediaStore.savePostThumbnail(savedPost.id, savedPost.thumbnailPath);
 
     // 2. Add post directly to FeedProvider (shows at index 0 on top of Beranda)
     await feedProvider.addPostToFeed(savedPost, saveToDb: false);

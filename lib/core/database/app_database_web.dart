@@ -17,12 +17,16 @@ class AppDatabase {
     try {
       final list = _webInMemoryDb[table];
       if (list != null) {
-        // Strip out massive base64 blobs exceeding 2MB if any to prevent localStorage quota crash
+        // Strip out massive blobs exceeding 1MB if any to prevent localStorage quota crash
         final safeList = list.map((item) {
           final copy = Map<String, dynamic>.from(item);
           copy.forEach((k, v) {
-            if (v is String && v.length > 500000 && v.startsWith('data:')) {
-              copy[k] = 'assets/images/andrian_feed_poster.jpg';
+            if (v is String && v.length > 800000 && v.startsWith('data:')) {
+              if (k == 'avatar_url' || k == 'author_avatar') {
+                copy[k] = 'assets/images/img_8668.jpg';
+              } else {
+                copy[k] = 'assets/images/img_feed.jpg';
+              }
             }
           });
           return copy;
@@ -59,6 +63,25 @@ class AppDatabase {
       _seedDefaultTable(table, now);
       _saveTableToStorage(table);
     }
+
+    // Restore persistent active avatar if saved by user
+    try {
+      final activeAvatar = html.window.localStorage['socialhub_active_user_avatar'];
+      if (activeAvatar != null && activeAvatar.isNotEmpty && _webInMemoryDb['users'] != null) {
+        for (final u in _webInMemoryDb['users']!) {
+          if (u['id'] == 1 || (u['username'] ?? '').toString().toLowerCase() == 'andrianpei') {
+            u['avatar_url'] = activeAvatar;
+          }
+        }
+        if (_webInMemoryDb['posts'] != null) {
+          for (final p in _webInMemoryDb['posts']!) {
+            if (p['user_id'] == 1 || (p['author_username'] ?? '').toString().toLowerCase() == 'andrianpei') {
+              p['author_avatar'] = activeAvatar;
+            }
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   void _seedDefaultTable(String table, String now) {

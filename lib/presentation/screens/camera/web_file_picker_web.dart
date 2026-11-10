@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'package:social_hub/core/services/media_store/web_media_store.dart';
 
 void pickMediaFileNative({
   required Function(String fileName, String? objectUrl, bool isVideo, String? thumbnailUrl) onSelected,
@@ -25,6 +26,7 @@ void pickMediaFileNative({
       final objectUrl = html.Url.createObjectUrl(file);
 
       if (isVideo) {
+        WebMediaStore.cacheSelectedVideoBlob(file);
         final video = html.VideoElement()
           ..src = objectUrl
           ..crossOrigin = 'anonymous'

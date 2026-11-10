@@ -23,5 +23,6 @@ abstract class PostRepository {
     required String musicTitle,
     required String thumbnailPath,
   });
+  Future<void> deletePost(int postId);
 }
 

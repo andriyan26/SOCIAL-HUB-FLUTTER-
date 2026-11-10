@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
@@ -123,6 +124,18 @@ class ShareSheet extends StatelessWidget {
                       },
                     ),
 
+                  // 3. Delete Post (for user's own post)
+                  if (isMe)
+                    _buildActionIcon(
+                      Icons.delete_forever_rounded,
+                      'Hapus Video',
+                      Colors.redAccent,
+                      () {
+                        Navigator.pop(context);
+                        _showDeleteConfirmation(context, post!);
+                      },
+                    ),
+
                   _buildActionIcon(Icons.link, 'Salin Tautan', Colors.blue, () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -209,6 +222,63 @@ class ShareSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, PostEntity post) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 24),
+            SizedBox(width: 8),
+            Text('Hapus Video?', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Video ini akan dihapus secara permanen dari Beranda dan Profil Anda.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<FeedProvider>().deletePost(post.id);
+              if (context.mounted) {
+                await context.read<ProfileProvider>().deletePost(post.id);
+              }
+              AppAudioService.instance.playPopSound();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('🗑️ Video berhasil dihapus secara permanen.'),
+                      ],
+                    ),
+                    backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Hapus Video', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

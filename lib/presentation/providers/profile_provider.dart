@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/services/cloud_sync_service.dart';
+import 'package:social_hub/core/services/media_store/web_media_store.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/domain/repositories/post_repository.dart';
 
@@ -37,11 +38,18 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final allUserPosts = await postRepository.getUserPosts(userId);
-      _userPosts = allUserPosts.where((p) => !p.isPrivate).toList();
-      _privatePosts = allUserPosts.where((p) => p.isPrivate).toList();
-      _likedPosts = await postRepository.getLikedPosts();
-      _bookmarkedPosts = await postRepository.getBookmarkedPosts();
-      _repostedPosts = await postRepository.getRepostedPosts();
+      PostEntity restoreThumb(PostEntity p) {
+        final localThumb = WebMediaStore.getPostThumbnail(p.id);
+        if (localThumb != null && localThumb.isNotEmpty) {
+          return p.copyWith(thumbnailPath: localThumb);
+        }
+        return p;
+      }
+      _userPosts = allUserPosts.where((p) => !p.isPrivate).map(restoreThumb).toList();
+      _privatePosts = allUserPosts.where((p) => p.isPrivate).map(restoreThumb).toList();
+      _likedPosts = (await postRepository.getLikedPosts()).map(restoreThumb).toList();
+      _bookmarkedPosts = (await postRepository.getBookmarkedPosts()).map(restoreThumb).toList();
+      _repostedPosts = (await postRepository.getRepostedPosts()).map(restoreThumb).toList();
     } catch (e) {
       debugPrint('Error loading profile data: $e');
     } finally {
@@ -254,5 +262,20 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
     CloudSyncService.syncPostToCloud(newPost);
     return newPost;
+  }
+
+  Future<void> deletePost(int postId) async {
+    _userPosts.removeWhere((p) => p.id == postId);
+    _privatePosts.removeWhere((p) => p.id == postId);
+    _likedPosts.removeWhere((p) => p.id == postId);
+    _bookmarkedPosts.removeWhere((p) => p.id == postId);
+    _repostedPosts.removeWhere((p) => p.id == postId);
+    notifyListeners();
+
+    try {
+      await postRepository.deletePost(postId);
+    } catch (_) {}
+    CloudSyncService.deleteCloudPost(postId);
+    WebMediaStore.deletePostVideo(postId);
   }
 }

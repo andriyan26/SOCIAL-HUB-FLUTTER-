@@ -15,6 +15,7 @@ import 'widgets/rotating_music_disc.dart';
 import 'widgets/comments_sheet.dart';
 import 'widgets/share_sheet.dart';
 import 'web_video_silencer.dart';
+import 'package:social_hub/core/services/media_store/web_media_store.dart';
 
 class FeedScreen extends StatefulWidget {
   final bool isActive;
@@ -107,7 +108,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   Future<void> _playVideoForIndex(int index, List<PostEntity> posts) async {
     if (posts.isEmpty || index < 0 || index >= posts.length) return;
     final post = posts[index];
-    final url = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
+    String url = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
+    final storedVideoUrl = await WebMediaStore.getPostVideoUrl(post.id);
+    if (storedVideoUrl != null && storedVideoUrl.isNotEmpty) {
+      url = storedVideoUrl;
+    }
 
     if (_currentPlayingIndex == index &&
         _currentVideoUrl == url &&
