@@ -7,6 +7,7 @@ import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/comments_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/share_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/rotating_music_disc.dart';
@@ -164,6 +165,18 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
       (p) => p.id == post.id,
       orElse: () => post,
     );
+
+    final currentUser = context.watch<AuthProvider>().currentUser;
+    final isMe = currentPostInState.userId == (currentUser?.id ?? 1) ||
+        currentPostInState.authorUsername.toLowerCase() == 'andrianpei';
+
+    final authorAvatar = (isMe && currentUser?.avatarUrl.isNotEmpty == true)
+        ? currentUser!.avatarUrl
+        : currentPostInState.authorAvatar;
+
+    final authorName = (isMe && currentUser?.name.isNotEmpty == true)
+        ? currentUser!.name
+        : currentPostInState.authorName;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -344,7 +357,7 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
             child: Column(
               children: [
                 // Author Avatar with verified badge
-                _buildAuthorAvatar(currentPostInState.authorAvatar),
+                _buildAuthorAvatar(authorAvatar),
                 const SizedBox(height: 18),
 
                 // Like Button
@@ -413,7 +426,7 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
                 const SizedBox(height: 20),
 
                 // Rotating Vinyl Disc
-                RotatingMusicDisc(imagePath: currentPostInState.authorAvatar),
+                RotatingMusicDisc(imagePath: authorAvatar),
               ],
             ),
           ),
@@ -431,7 +444,7 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
                 Row(
                   children: [
                     Text(
-                      currentPostInState.authorName,
+                      authorName,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,

@@ -17,14 +17,23 @@ class SessionService {
     String? avatarUrl,
     String? bio,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyIsLoggedIn, true);
-    await prefs.setInt(_keyUserId, id);
-    await prefs.setString(_keyUsername, username);
-    await prefs.setString(_keyEmail, email);
-    await prefs.setString(_keyName, name);
-    if (avatarUrl != null) await prefs.setString(_keyAvatar, avatarUrl);
-    if (bio != null) await prefs.setString(_keyBio, bio);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyIsLoggedIn, true);
+      await prefs.setInt(_keyUserId, id);
+      await prefs.setString(_keyUsername, username);
+      await prefs.setString(_keyEmail, email);
+      await prefs.setString(_keyName, name);
+      if (avatarUrl != null) {
+        // Guard against massive base64 strings exceeding browser localStorage limit (5MB quota)
+        if (avatarUrl.length < 500000) {
+          await prefs.setString(_keyAvatar, avatarUrl);
+        }
+      }
+      if (bio != null) await prefs.setString(_keyBio, bio);
+    } catch (_) {
+      // Silently catch quota or web storage exceptions so saving session never breaks profile updates
+    }
   }
 
   static Future<bool> isLoggedIn() async {

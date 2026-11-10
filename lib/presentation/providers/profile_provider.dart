@@ -39,7 +39,7 @@ class ProfileProvider extends ChangeNotifier {
 
   void updateAuthorProfile(int userId, {String? name, String? avatarUrl}) {
     for (int i = 0; i < _userPosts.length; i++) {
-      if (_userPosts[i].userId == userId) {
+      if (_userPosts[i].userId == userId || _userPosts[i].authorUsername.toLowerCase() == 'andrianpei') {
         _userPosts[i] = _userPosts[i].copyWith(
           authorName: (name != null && name.isNotEmpty) ? name : _userPosts[i].authorName,
           authorAvatar: (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : _userPosts[i].authorAvatar,

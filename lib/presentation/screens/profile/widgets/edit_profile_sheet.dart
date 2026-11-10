@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
+import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
@@ -22,6 +23,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   late TextEditingController _bioController;
   late String _selectedAvatar;
   String? _customUploadedName;
+  bool _isSaving = false;
 
   final List<Map<String, String>> _avatarOptions = const [
     {
@@ -72,12 +74,13 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
             _selectedAvatar = pathOrUrl;
             _customUploadedName = fileName;
           });
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✨ Foto "$fileName" berhasil dipilih! Tekan "Simpan Perubahan" untuk menerapkan.'),
+              content: Text('✨ Foto "$fileName" terpilih! Tekan "Simpan Perubahan" di bawah.'),
               backgroundColor: const Color(0xFF10B981),
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 2),
+              duration: const Duration(milliseconds: 1500),
             ),
           );
         }
@@ -86,33 +89,60 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   }
 
   Future<void> _save() async {
-    final auth = context.read<AuthProvider>();
-    final user = auth.currentUser;
-    final userId = user?.id ?? 1;
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
 
-    final name = _nameController.text.trim();
-    final bio = _bioController.text.trim();
+    try {
+      final auth = context.read<AuthProvider>();
+      final user = auth.currentUser;
+      final userId = user?.id ?? 1;
 
-    await auth.updateProfile(
-      name: name.isNotEmpty ? name : 'Andrian Pei',
-      bio: bio.isNotEmpty ? bio : 'Taken 🤍',
-      avatarUrl: _selectedAvatar,
-    );
+      final name = _nameController.text.trim();
+      final bio = _bioController.text.trim();
+      final finalName = name.isNotEmpty ? name : (user?.name ?? 'Andrian Pei');
+      final finalBio = bio.isNotEmpty ? bio : (user?.bio ?? 'Taken 🤍');
 
-    if (mounted) {
-      final finalName = name.isNotEmpty ? name : 'Andrian Pei';
-      // Synchronize across all active providers so Beranda, Rotating Disk, & Profile update immediately
-      context.read<FeedProvider>().updateAuthorProfile(userId, name: finalName, avatarUrl: _selectedAvatar);
-      context.read<ProfileProvider>().updateAuthorProfile(userId, name: finalName, avatarUrl: _selectedAvatar);
-
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 Profil dan foto berhasil diperbarui dan tersinkron ke semua halaman!'),
-          backgroundColor: Color(0xFF10B981),
-          behavior: SnackBarBehavior.floating,
-        ),
+      await auth.updateProfile(
+        name: finalName,
+        bio: finalBio,
+        avatarUrl: _selectedAvatar,
       );
+
+      if (mounted) {
+        // Synchronize across all active providers so Beranda, Rotating Disk, & Profile update immediately
+        context.read<FeedProvider>().updateAuthorProfile(userId, name: finalName, avatarUrl: _selectedAvatar);
+        context.read<ProfileProvider>().updateAuthorProfile(userId, name: finalName, avatarUrl: _selectedAvatar);
+
+        AppAudioService.instance.playChimeSound();
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '🎉 Profil dan foto berhasil diperbarui di seluruh aplikasi!',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Save error: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -294,7 +324,8 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
             CustomButton(
               text: 'Simpan Perubahan',
               backgroundColor: AppColors.primary,
-              onPressed: _save,
+              isLoading: _isSaving,
+              onPressed: _isSaving ? null : _save,
             ),
           ],
         ),

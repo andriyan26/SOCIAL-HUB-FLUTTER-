@@ -49,7 +49,7 @@ void main() async {
           create: (_) => AuthProvider(authRepository: authRepository)..checkAuthSession(),
         ),
         ChangeNotifierProvider(
-          create: (_) => FeedProvider(postRepository: postRepository),
+          create: (_) => FeedProvider(postRepository: postRepository)..loadFeed(),
         ),
         ChangeNotifierProvider(
           create: (_) => CommunityProvider(friendRepository: friendRepository),

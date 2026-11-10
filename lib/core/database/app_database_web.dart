@@ -225,18 +225,34 @@ class AppDatabase {
     _initWebData();
     final list = _webInMemoryDb[table] ?? [];
     int count = 0;
-    if (where.contains('id = ?')) {
-      final id = whereArgs.first;
+    if (where.contains('user_id = ?')) {
+      final userId = whereArgs.first;
       for (int i = 0; i < list.length; i++) {
-        if (list[i]['id'] == id) {
+        if (list[i]['user_id'] == userId) {
           list[i] = {...list[i], ...data};
           count++;
         }
       }
-    } else if (where.contains('user_id = ?')) {
-      final userId = whereArgs.first;
+    } else if (where.contains('post_id = ?')) {
+      final postId = whereArgs.first;
       for (int i = 0; i < list.length; i++) {
-        if (list[i]['user_id'] == userId) {
+        if (list[i]['post_id'] == postId) {
+          list[i] = {...list[i], ...data};
+          count++;
+        }
+      }
+    } else if (where.contains('username = ?')) {
+      final username = whereArgs.first.toString().toLowerCase();
+      for (int i = 0; i < list.length; i++) {
+        if ((list[i]['username'] ?? '').toString().toLowerCase() == username) {
+          list[i] = {...list[i], ...data};
+          count++;
+        }
+      }
+    } else if (where.contains('id = ?')) {
+      final id = whereArgs.first;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i]['id'] == id) {
           list[i] = {...list[i], ...data};
           count++;
         }
@@ -249,7 +265,13 @@ class AppDatabase {
     _initWebData();
     final list = _webInMemoryDb[table] ?? [];
     int before = list.length;
-    if (where.contains('id = ?')) {
+    if (where.contains('user_id = ?')) {
+      final userId = whereArgs.first;
+      list.removeWhere((item) => item['user_id'] == userId);
+    } else if (where.contains('post_id = ?')) {
+      final postId = whereArgs.first;
+      list.removeWhere((item) => item['post_id'] == postId);
+    } else if (where.contains('id = ?')) {
       final id = whereArgs.first;
       list.removeWhere((item) => item['id'] == id);
     }

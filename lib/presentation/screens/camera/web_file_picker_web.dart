@@ -47,16 +47,10 @@ void pickImageFileNative({
     final files = uploadInput.files;
     if (files != null && files.isNotEmpty) {
       final file = files[0];
-      final reader = html.FileReader();
-      reader.readAsDataUrl(file);
-      reader.onLoadEnd.listen((_) {
-        final result = reader.result as String?;
-        final url = (result != null && result.isNotEmpty)
-            ? result
-            : html.Url.createObjectUrl(file);
-        onSelected(file.name, url);
-        uploadInput.remove();
-      });
+      // Create high-performance, lightweight object URL (instant, no base64 memory overhead)
+      final objectUrl = html.Url.createObjectUrl(file);
+      onSelected(file.name, objectUrl);
+      uploadInput.remove();
     } else {
       uploadInput.remove();
     }

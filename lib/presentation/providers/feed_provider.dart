@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/domain/repositories/post_repository.dart';
 
 class FeedProvider extends ChangeNotifier {
   final PostRepository postRepository;
 
-  FeedProvider({required this.postRepository});
+  FeedProvider({required this.postRepository}) {
+    _initDefaultPosts();
+  }
 
   List<PostEntity> _posts = [];
   bool _isLoading = false;
@@ -13,6 +16,68 @@ class FeedProvider extends ChangeNotifier {
   List<CommentEntity> _currentComments = [];
   bool _isLoadingComments = false;
   bool _isFeedActive = true;
+
+  void _initDefaultPosts() {
+    _posts = [
+      PostEntity(
+        id: 1,
+        userId: 1,
+        authorName: 'Andrian Pei',
+        authorUsername: 'andrianpei',
+        authorAvatar: AppAssets.imgAndrianPoster,
+        videoUrl: AppAssets.videoAndrian,
+        caption: 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik! Terima kasih untuk semua dukungannya ✨ #wisuda #unpam #informatika #fyp',
+        musicTitle: '♫ Berisi: Sound Wisuda Bangga (Original) - andrianpei',
+        likesCount: 844300,
+        commentsCount: 3322,
+        sharesCount: 12300,
+        bookmarksCount: 17100,
+        isLiked: false,
+        isBookmarked: false,
+        viewCount: 182000,
+        thumbnailPath: AppAssets.imgAndrianPoster,
+        createdAt: 'Hari ini',
+      ),
+      PostEntity(
+        id: 2,
+        userId: 2,
+        authorName: 'Aurelie Hermansyah',
+        authorUsername: 'aurelie.hermansyah',
+        authorAvatar: AppAssets.imgFeed,
+        videoUrl: AppAssets.videoLanding,
+        caption: 'Kalo ini sama kembaran aku👯‍♀️',
+        musicTitle: '♫ Berisi: Anak Kampung (T...',
+        likesCount: 844300,
+        commentsCount: 3322,
+        sharesCount: 12300,
+        bookmarksCount: 17100,
+        isLiked: false,
+        isBookmarked: false,
+        viewCount: 1520000,
+        thumbnailPath: AppAssets.imgFeed,
+        createdAt: 'Hari ini',
+      ),
+      PostEntity(
+        id: 3,
+        userId: 3,
+        authorName: 'ei.kaa🍭',
+        authorUsername: 'ei.kaa',
+        authorAvatar: AppAssets.imgFriends,
+        videoUrl: AppAssets.videoLanding,
+        caption: 'Seru banget jalan-jalan sore bareng bestie! Jangan lupa follow dan like ya guys ✨ #friends #vlog',
+        musicTitle: '♫ Beat Aesthetic Viral 2026',
+        likesCount: 95400,
+        commentsCount: 890,
+        sharesCount: 2800,
+        bookmarksCount: 5600,
+        isLiked: false,
+        isBookmarked: false,
+        viewCount: 280000,
+        thumbnailPath: AppAssets.imgFriends,
+        createdAt: '2 hari lalu',
+      ),
+    ];
+  }
 
   List<PostEntity> get posts => _posts;
   bool get isLoading => _isLoading;
@@ -32,7 +97,10 @@ class FeedProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      _posts = await postRepository.getFeedPosts();
+      final loaded = await postRepository.getFeedPosts();
+      if (loaded.isNotEmpty) {
+        _posts = loaded;
+      }
     } catch (e) {
       debugPrint('Error loading feed: $e');
     } finally {
@@ -51,8 +119,11 @@ class FeedProvider extends ChangeNotifier {
   }
 
   void updateAuthorProfile(int userId, {String? name, String? avatarUrl}) {
+    if (_posts.isEmpty) {
+      _initDefaultPosts();
+    }
     for (int i = 0; i < _posts.length; i++) {
-      if (_posts[i].userId == userId) {
+      if (_posts[i].userId == userId || _posts[i].authorUsername.toLowerCase() == 'andrianpei') {
         _posts[i] = _posts[i].copyWith(
           authorName: (name != null && name.isNotEmpty) ? name : _posts[i].authorName,
           authorAvatar: (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : _posts[i].authorAvatar,

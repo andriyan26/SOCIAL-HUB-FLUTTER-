@@ -435,6 +435,18 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     );
     final isFollowing = _followedAuthors.contains(post.id);
 
+    final currentUser = context.watch<AuthProvider>().currentUser;
+    final isMe = currentPostInState.userId == (currentUser?.id ?? 1) ||
+        currentPostInState.authorUsername.toLowerCase() == 'andrianpei';
+
+    final authorAvatar = (isMe && currentUser?.avatarUrl.isNotEmpty == true)
+        ? currentUser!.avatarUrl
+        : currentPostInState.authorAvatar;
+
+    final authorName = (isMe && currentUser?.name.isNotEmpty == true)
+        ? currentUser!.name
+        : currentPostInState.authorName;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -558,9 +570,9 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
 
               // 2. Avatar with '+' Follow button
               _buildAuthorAvatar(
-                currentPostInState.authorAvatar,
+                authorAvatar,
                 isFollowing: isFollowing,
-                onFollowTap: () => _toggleFollowAuthor(post.id, currentPostInState.authorName),
+                onFollowTap: () => _toggleFollowAuthor(post.id, authorName),
               ),
               const SizedBox(height: 16),
 
@@ -633,7 +645,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _showSoundSheet(context, currentPostInState.musicTitle),
-                child: RotatingMusicDisc(imagePath: currentPostInState.authorAvatar),
+                child: RotatingMusicDisc(imagePath: authorAvatar),
               ),
             ],
           ),
@@ -692,7 +704,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               Row(
                 children: [
                   Text(
-                    currentPostInState.authorName,
+                    authorName,
                     style: const TextStyle(
                       fontSize: 15.5,
                       fontWeight: FontWeight.bold,
