@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/utils/formatters.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
