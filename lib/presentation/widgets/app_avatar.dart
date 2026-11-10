@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/core/constants/app_assets.dart';
 
 class AppAvatar extends StatelessWidget {
   final String avatarUrl;
@@ -37,8 +38,11 @@ class AppAvatar extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    if (avatarUrl.isEmpty || avatarUrl == 'purple_a') {
-      return _buildFallback();
+    if (avatarUrl.isEmpty) {
+      return _buildFallback(preferProfileAsset: true);
+    }
+    if (avatarUrl == 'purple_a') {
+      return _buildInitialFallback();
     }
 
     // 1. Base64 Data URL (Uploaded from local computer/gallery via FileReader)
@@ -51,10 +55,10 @@ class AppAvatar extends StatelessWidget {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildFallback(),
+          errorBuilder: (_, __, ___) => _buildFallback(preferProfileAsset: true),
         );
       } catch (e) {
-        return _buildFallback();
+        return _buildFallback(preferProfileAsset: true);
       }
     }
 
@@ -65,7 +69,7 @@ class AppAvatar extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildFallback(),
+        errorBuilder: (_, __, ___) => _buildFallback(preferProfileAsset: true),
       );
     }
 
@@ -76,14 +80,27 @@ class AppAvatar extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildFallback(),
+        errorBuilder: (_, __, ___) => _buildFallback(preferProfileAsset: true),
       );
     }
 
-    return _buildFallback();
+    return _buildFallback(preferProfileAsset: true);
   }
 
-  Widget _buildFallback() {
+  Widget _buildFallback({bool preferProfileAsset = false}) {
+    if (preferProfileAsset) {
+      return Image.asset(
+        AppAssets.imgProfile,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildInitialFallback(),
+      );
+    }
+    return _buildInitialFallback();
+  }
+
+  Widget _buildInitialFallback() {
     if (fallbackChild != null) {
       return Container(
         color: AppColors.avatarPurple,

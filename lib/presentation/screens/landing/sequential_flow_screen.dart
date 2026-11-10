@@ -12,15 +12,22 @@ enum FlowStage {
 }
 
 class SequentialFlowScreen extends StatefulWidget {
-  const SequentialFlowScreen({super.key});
+  final FlowStage initialStage;
+  const SequentialFlowScreen({super.key, this.initialStage = FlowStage.splash});
 
   @override
   State<SequentialFlowScreen> createState() => _SequentialFlowScreenState();
 }
 
 class _SequentialFlowScreenState extends State<SequentialFlowScreen> {
-  FlowStage _currentStage = FlowStage.splash;
+  late FlowStage _currentStage;
   int _lastReplayKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStage = widget.initialStage;
+  }
 
   void _goToLogin() {
     setState(() {

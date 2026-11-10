@@ -6,7 +6,7 @@ import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/profile_provider.dart';
-import 'package:social_hub/presentation/screens/landing/landing_screen.dart';
+import 'package:social_hub/presentation/screens/landing/sequential_flow_screen.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 import 'widgets/edit_profile_sheet.dart';
@@ -95,7 +95,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (mounted) {
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (_) => const LandingScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const SequentialFlowScreen(initialStage: FlowStage.splash),
+                    ),
                     (route) => false,
                   );
                 }

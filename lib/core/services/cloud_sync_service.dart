@@ -18,7 +18,12 @@ class CloudSyncService {
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
         if (jsonResponse['data'] != null) {
-          return Map<String, dynamic>.from(jsonResponse['data']);
+          final data = Map<String, dynamic>.from(jsonResponse['data']);
+          final avatar = data['avatar_url']?.toString() ?? '';
+          if (avatar.startsWith('blob:') || avatar.isEmpty || avatar == 'purple_a') {
+            data['avatar_url'] = 'assets/images/img_8668.jpg';
+          }
+          return data;
         }
       }
     } catch (e) {

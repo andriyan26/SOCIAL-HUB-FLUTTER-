@@ -58,7 +58,13 @@ void pickMediaFileNative({
           }
         });
       } else {
-        onSelected(file.name, objectUrl, false, objectUrl);
+        // For images selected in media picker: convert to persistent Data URL as well
+        final reader = html.FileReader();
+        reader.readAsDataUrl(file);
+        reader.onLoadEnd.listen((_) {
+          final dataUrl = reader.result as String?;
+          onSelected(file.name, dataUrl ?? objectUrl, false, dataUrl ?? objectUrl);
+        });
       }
       uploadInput.remove();
     } else {
@@ -83,9 +89,53 @@ void pickImageFileNative({
     final files = uploadInput.files;
     if (files != null && files.isNotEmpty) {
       final file = files[0];
-      final objectUrl = html.Url.createObjectUrl(file);
-      onSelected(file.name, objectUrl);
-      uploadInput.remove();
+      final reader = html.FileReader();
+      reader.readAsDataUrl(file);
+      reader.onLoadEnd.listen((_) {
+        final rawDataUrl = reader.result as String?;
+        if (rawDataUrl == null || rawDataUrl.isEmpty) {
+          uploadInput.remove();
+          return;
+        }
+
+        // Optimize and compress image using HTML5 Image + Canvas
+        // Produces a crisp 512x512 JPEG Data URL that is completely persistent across page refreshes
+        try {
+          final img = html.ImageElement()..src = rawDataUrl;
+          img.onLoad.listen((_) {
+            const int maxDimension = 512;
+            int width = img.naturalWidth;
+            int height = img.naturalHeight;
+
+            if (width <= 0 || height <= 0) {
+              onSelected(file.name, rawDataUrl);
+              return;
+            }
+
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = (height * maxDimension / width).round();
+                width = maxDimension;
+              } else {
+                width = (width * maxDimension / height).round();
+                height = maxDimension;
+              }
+            }
+
+            final canvas = html.CanvasElement(width: width, height: height);
+            final ctx = canvas.context2D;
+            ctx.drawImageScaled(img, 0, 0, width, height);
+            final optimizedDataUrl = canvas.toDataUrl('image/jpeg', 0.88);
+            onSelected(file.name, optimizedDataUrl);
+          });
+          img.onError.listen((_) {
+            onSelected(file.name, rawDataUrl);
+          });
+        } catch (_) {
+          onSelected(file.name, rawDataUrl);
+        }
+        uploadInput.remove();
+      });
     } else {
       uploadInput.remove();
     }
