@@ -14,3 +14,4 @@ void silenceBackgroundWebVideos() {
     }
   } catch (_) {}
 }
+

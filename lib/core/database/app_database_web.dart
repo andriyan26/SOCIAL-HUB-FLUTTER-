@@ -253,6 +253,22 @@ class AppDatabase {
           final e = (row['email'] ?? '').toString().toLowerCase();
           return u == queryVal || e == queryVal;
         }).toList();
+      } else if (where.contains('is_liked = ?')) {
+        final target = whereArgs.first.toString();
+        list = list.where((row) => (row['is_liked'] ?? 0).toString() == target || (target == '1' && row['is_liked'] == true)).toList();
+      } else if (where.contains('is_bookmarked = ?')) {
+        final target = whereArgs.first.toString();
+        list = list.where((row) => (row['is_bookmarked'] ?? 0).toString() == target || (target == '1' && row['is_bookmarked'] == true)).toList();
+      } else if (where.contains('is_reposted = ?')) {
+        final target = whereArgs.first.toString();
+        list = list.where((row) => (row['is_reposted'] ?? 0).toString() == target || (target == '1' && row['is_reposted'] == true)).toList();
+      } else if (where.contains('user_id = ? AND is_private = ?') && whereArgs.length >= 2) {
+        final targetUserId = whereArgs[0].toString();
+        final targetPrivate = whereArgs[1].toString();
+        list = list.where((row) =>
+          (row['user_id'] ?? '').toString() == targetUserId &&
+          ((row['is_private'] ?? 0).toString() == targetPrivate || (targetPrivate == '1' && row['is_private'] == true))
+        ).toList();
       } else if (where.contains('user_id = ?')) {
         final targetUserId = whereArgs.first.toString();
         list = list.where((row) => (row['user_id'] ?? '').toString() == targetUserId).toList();

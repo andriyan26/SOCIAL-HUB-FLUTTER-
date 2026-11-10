@@ -7,6 +7,7 @@ import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/comments_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/share_sheet.dart';
@@ -109,7 +110,11 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
     });
 
     if (!post.isLiked) {
-      context.read<FeedProvider>().toggleLike(post.id);
+      context.read<FeedProvider>().toggleLike(post.id).then((updated) {
+        if (updated != null && mounted) {
+          context.read<ProfileProvider>().syncPostState(updated);
+        }
+      });
     }
 
     Future.delayed(const Duration(milliseconds: 900), () {
@@ -322,33 +327,73 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
                       ),
                     ),
 
-                    // Sound Mute Toggle
-                    GestureDetector(
-                      onTap: () {
-                        AppAudioService.instance.toggleMute();
-                        final isMuted = AppAudioService.instance.isMuted;
-                        _videoController?.setVolume(isMuted ? 0.0 : 1.0);
-                        setState(() {});
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(isMuted ? 'Suara Dimatikan' : 'Suara Diaktifkan ♫'),
-                            duration: const Duration(seconds: 1),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Privacy Lock/Unlock Toggle for own post
+                        if (isMe)
+                          GestureDetector(
+                            onTap: () async {
+                              final updated = await feedProvider.togglePrivate(currentPostInState.id);
+                              if (updated != null && mounted) {
+                                context.read<ProfileProvider>().syncPostState(updated);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      updated.isPrivate
+                                          ? '🔒 Video berhasil dikunci dan dipindahkan ke tab Video Pribadi.'
+                                          : '🌐 Video berhasil dibuka ke tab Publik.',
+                                    ),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: currentPostInState.isPrivate ? AppColors.primary.withOpacity(0.85) : Colors.black.withOpacity(0.4),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white24, width: 0.8),
+                              ),
+                              child: Icon(
+                                currentPostInState.isPrivate ? Icons.lock : Icons.lock_open,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
                           ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.4),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white24, width: 0.8),
+
+                        // Sound Mute Toggle
+                        GestureDetector(
+                          onTap: () {
+                            AppAudioService.instance.toggleMute();
+                            final isMuted = AppAudioService.instance.isMuted;
+                            _videoController?.setVolume(isMuted ? 0.0 : 1.0);
+                            setState(() {});
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(isMuted ? 'Suara Dimatikan' : 'Suara Diaktifkan ♫'),
+                                duration: const Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.4),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white24, width: 0.8),
+                            ),
+                            child: Icon(
+                              AppAudioService.instance.isMuted ? Icons.volume_off : Icons.volume_up,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
                         ),
-                        child: Icon(
-                          AppAudioService.instance.isMuted ? Icons.volume_off : Icons.volume_up,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -371,9 +416,12 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
                   icon: currentPostInState.isLiked ? Icons.favorite : Icons.favorite_border,
                   iconColor: currentPostInState.isLiked ? AppColors.primary : Colors.white,
                   label: Formatters.formatCount(currentPostInState.likesCount),
-                  onTap: () {
+                  onTap: () async {
                     AppAudioService.instance.playPopSound();
-                    feedProvider.toggleLike(currentPostInState.id);
+                    final updated = await feedProvider.toggleLike(currentPostInState.id);
+                    if (updated != null && context.mounted) {
+                      context.read<ProfileProvider>().syncPostState(updated);
+                    }
                   },
                 ),
                 const SizedBox(height: 16),
@@ -402,9 +450,12 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
                   icon: currentPostInState.isBookmarked ? Icons.bookmark : Icons.bookmark_outline,
                   iconColor: currentPostInState.isBookmarked ? const Color(0xFFFFD700) : Colors.white,
                   label: Formatters.formatCount(currentPostInState.bookmarksCount),
-                  onTap: () {
+                  onTap: () async {
                     AppAudioService.instance.playChimeSound();
-                    feedProvider.toggleBookmark(currentPostInState.id);
+                    final updated = await feedProvider.toggleBookmark(currentPostInState.id);
+                    if (updated != null && context.mounted) {
+                      context.read<ProfileProvider>().syncPostState(updated);
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(currentPostInState.isBookmarked ? 'Dihapus dari Favorit' : 'Disimpan ke Favorit ✨'),
@@ -425,7 +476,7 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
                     showModalBottomSheet(
                       context: context,
                       backgroundColor: Colors.transparent,
-                      builder: (_) => const ShareSheet(),
+                      builder: (_) => ShareSheet(post: currentPostInState),
                     );
                   },
                 ),

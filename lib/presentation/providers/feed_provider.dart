@@ -157,36 +157,38 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleLike(int postId) async {
+  Future<PostEntity?> toggleLike(int postId) async {
     final index = _posts.indexWhere((p) => p.id == postId);
-    if (index == -1) return;
+    if (index == -1) return null;
 
     final post = _posts[index];
     final newIsLiked = !post.isLiked;
     final newCount = newIsLiked ? post.likesCount + 1 : (post.likesCount > 0 ? post.likesCount - 1 : 0);
 
-    // Optimistic UI update
-    _posts[index] = post.copyWith(isLiked: newIsLiked, likesCount: newCount);
+    final updated = post.copyWith(isLiked: newIsLiked, likesCount: newCount);
+    _posts[index] = updated;
     notifyListeners();
 
     try {
       await postRepository.toggleLike(postId, post.isLiked);
     } catch (e) {
-      // Revert on error
       _posts[index] = post;
       notifyListeners();
+      return null;
     }
+    return updated;
   }
 
-  Future<void> toggleBookmark(int postId) async {
+  Future<PostEntity?> toggleBookmark(int postId) async {
     final index = _posts.indexWhere((p) => p.id == postId);
-    if (index == -1) return;
+    if (index == -1) return null;
 
     final post = _posts[index];
     final newIsBookmarked = !post.isBookmarked;
     final newCount = newIsBookmarked ? post.bookmarksCount + 1 : (post.bookmarksCount > 0 ? post.bookmarksCount - 1 : 0);
 
-    _posts[index] = post.copyWith(isBookmarked: newIsBookmarked, bookmarksCount: newCount);
+    final updated = post.copyWith(isBookmarked: newIsBookmarked, bookmarksCount: newCount);
+    _posts[index] = updated;
     notifyListeners();
 
     try {
@@ -194,7 +196,52 @@ class FeedProvider extends ChangeNotifier {
     } catch (e) {
       _posts[index] = post;
       notifyListeners();
+      return null;
     }
+    return updated;
+  }
+
+  Future<PostEntity?> toggleRepost(int postId) async {
+    final index = _posts.indexWhere((p) => p.id == postId);
+    if (index == -1) return null;
+
+    final post = _posts[index];
+    final newIsReposted = !post.isReposted;
+    final newCount = newIsReposted ? post.sharesCount + 1 : (post.sharesCount > 0 ? post.sharesCount - 1 : 0);
+
+    final updated = post.copyWith(isReposted: newIsReposted, sharesCount: newCount);
+    _posts[index] = updated;
+    notifyListeners();
+
+    try {
+      await postRepository.toggleRepost(postId, post.isReposted);
+    } catch (e) {
+      _posts[index] = post;
+      notifyListeners();
+      return null;
+    }
+    return updated;
+  }
+
+  Future<PostEntity?> togglePrivate(int postId) async {
+    final index = _posts.indexWhere((p) => p.id == postId);
+    if (index == -1) return null;
+
+    final post = _posts[index];
+    final newIsPrivate = !post.isPrivate;
+
+    final updated = post.copyWith(isPrivate: newIsPrivate);
+    _posts[index] = updated;
+    notifyListeners();
+
+    try {
+      await postRepository.togglePrivate(postId, post.isPrivate);
+    } catch (e) {
+      _posts[index] = post;
+      notifyListeners();
+      return null;
+    }
+    return updated;
   }
 
   Future<void> loadComments(int postId) async {

@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:social_hub/core/constants/app_colors.dart';
+import 'package:social_hub/domain/entities/post_entity.dart';
+import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/providers/profile_provider.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
 
 class ShareSheet extends StatelessWidget {
-  const ShareSheet({super.key});
+  final PostEntity? post;
+  const ShareSheet({super.key, this.post});
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = context.read<AuthProvider>().currentUser?.id ?? 1;
+    final isMe = post != null && (post!.userId == currentUserId || post!.authorUsername == 'andrianpei');
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: const BoxDecoration(
@@ -63,6 +72,57 @@ class ShareSheet extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 children: [
+                  // 1. Repost Button (Posting Ulang)
+                  _buildActionIcon(
+                    Icons.repeat,
+                    post?.isReposted == true ? 'Batal Repost' : 'Posting Ulang',
+                    const Color(0xFFFFD700),
+                    () async {
+                      Navigator.pop(context);
+                      if (post != null) {
+                        final feed = context.read<FeedProvider>();
+                        final updated = await feed.toggleRepost(post!.id);
+                        if (updated != null && context.mounted) {
+                          context.read<ProfileProvider>().syncPostState(updated);
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              updated?.isReposted == true
+                                  ? '🎉 Berhasil memposting ulang video! Tersimpan di tab Posting Ulang.'
+                                  : 'Batal memposting ulang video.',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+
+                  // 2. Lock / Unlock Privacy (for user's own post)
+                  if (isMe)
+                    _buildActionIcon(
+                      post!.isPrivate ? Icons.lock_open : Icons.lock_outline,
+                      post!.isPrivate ? 'Jadikan Publik' : 'Kunci Video',
+                      const Color(0xFF20D5EC),
+                      () async {
+                        Navigator.pop(context);
+                        final feed = context.read<FeedProvider>();
+                        final updated = await feed.togglePrivate(post!.id);
+                        if (updated != null && context.mounted) {
+                          context.read<ProfileProvider>().syncPostState(updated);
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              updated?.isPrivate == true
+                                  ? '🔒 Video berhasil dikunci dan dipindahkan ke tab Video Pribadi.'
+                                  : '🌐 Video berhasil dibuka ke tab Publik.',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
                   _buildActionIcon(Icons.link, 'Salin Tautan', Colors.blue, () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(

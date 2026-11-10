@@ -78,6 +78,26 @@ class LocalDataSource {
     return results.map((m) => PostModel.fromMap(m)).toList();
   }
 
+  Future<List<PostModel>> getLikedPosts() async {
+    final results = await db.query('posts', where: 'is_liked = ?', whereArgs: [1], orderBy: 'id DESC');
+    return results.map((m) => PostModel.fromMap(m)).toList();
+  }
+
+  Future<List<PostModel>> getBookmarkedPosts() async {
+    final results = await db.query('posts', where: 'is_bookmarked = ?', whereArgs: [1], orderBy: 'id DESC');
+    return results.map((m) => PostModel.fromMap(m)).toList();
+  }
+
+  Future<List<PostModel>> getRepostedPosts() async {
+    final results = await db.query('posts', where: 'is_reposted = ?', whereArgs: [1], orderBy: 'id DESC');
+    return results.map((m) => PostModel.fromMap(m)).toList();
+  }
+
+  Future<List<PostModel>> getPrivateUserPosts(int userId) async {
+    final results = await db.query('posts', where: 'user_id = ? AND is_private = ?', whereArgs: [userId, 1], orderBy: 'id DESC');
+    return results.map((m) => PostModel.fromMap(m)).toList();
+  }
+
   Future<void> updatePostLike(int postId, bool isLiked, int newLikesCount) async {
     await db.update(
       'posts',
@@ -91,6 +111,24 @@ class LocalDataSource {
     await db.update(
       'posts',
       {'is_bookmarked': isBookmarked ? 1 : 0, 'bookmarks_count': newBookmarkCount},
+      where: 'id = ?',
+      whereArgs: [postId],
+    );
+  }
+
+  Future<void> updatePostRepost(int postId, bool isReposted, int newSharesCount) async {
+    await db.update(
+      'posts',
+      {'is_reposted': isReposted ? 1 : 0, 'shares_count': newSharesCount},
+      where: 'id = ?',
+      whereArgs: [postId],
+    );
+  }
+
+  Future<void> updatePostPrivate(int postId, bool isPrivate) async {
+    await db.update(
+      'posts',
+      {'is_private': isPrivate ? 1 : 0},
       where: 'id = ?',
       whereArgs: [postId],
     );

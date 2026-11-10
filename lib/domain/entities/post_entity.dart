@@ -13,6 +13,8 @@ class PostEntity {
   final int bookmarksCount;
   final bool isLiked;
   final bool isBookmarked;
+  final bool isReposted;
+  final bool isPrivate;
   final int viewCount;
   final String thumbnailPath;
   final String createdAt;
@@ -32,6 +34,8 @@ class PostEntity {
     this.bookmarksCount = 0,
     this.isLiked = false,
     this.isBookmarked = false,
+    this.isReposted = false,
+    this.isPrivate = false,
     this.viewCount = 0,
     required this.thumbnailPath,
     required this.createdAt,
@@ -52,6 +56,8 @@ class PostEntity {
     int? bookmarksCount,
     bool? isLiked,
     bool? isBookmarked,
+    bool? isReposted,
+    bool? isPrivate,
     int? viewCount,
     String? thumbnailPath,
     String? createdAt,
@@ -71,6 +77,8 @@ class PostEntity {
       bookmarksCount: bookmarksCount ?? this.bookmarksCount,
       isLiked: isLiked ?? this.isLiked,
       isBookmarked: isBookmarked ?? this.isBookmarked,
+      isReposted: isReposted ?? this.isReposted,
+      isPrivate: isPrivate ?? this.isPrivate,
       viewCount: viewCount ?? this.viewCount,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
       createdAt: createdAt ?? this.createdAt,

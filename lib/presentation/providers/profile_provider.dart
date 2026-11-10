@@ -8,10 +8,20 @@ class ProfileProvider extends ChangeNotifier {
   ProfileProvider({required this.postRepository});
 
   List<PostEntity> _userPosts = [];
+  List<PostEntity> _privatePosts = [];
+  List<PostEntity> _repostedPosts = [];
+  List<PostEntity> _bookmarkedPosts = [];
+  List<PostEntity> _likedPosts = [];
+
   bool _isLoading = false;
   int _selectedSubTab = 0; // 0: Grid posts, 1: Lock, 2: Repost, 3: Bookmark, 4: Heart
 
   List<PostEntity> get userPosts => _userPosts;
+  List<PostEntity> get privatePosts => _privatePosts;
+  List<PostEntity> get repostedPosts => _repostedPosts;
+  List<PostEntity> get bookmarkedPosts => _bookmarkedPosts;
+  List<PostEntity> get likedPosts => _likedPosts;
+
   bool get isLoading => _isLoading;
   int get selectedSubTab => _selectedSubTab;
 
@@ -20,17 +30,136 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadUserPosts(int userId) async {
+  Future<void> loadProfileData(int userId) async {
     _isLoading = true;
     notifyListeners();
     try {
-      _userPosts = await postRepository.getUserPosts(userId);
+      final allUserPosts = await postRepository.getUserPosts(userId);
+      _userPosts = allUserPosts.where((p) => !p.isPrivate).toList();
+      _privatePosts = allUserPosts.where((p) => p.isPrivate).toList();
+      _likedPosts = await postRepository.getLikedPosts();
+      _bookmarkedPosts = await postRepository.getBookmarkedPosts();
+      _repostedPosts = await postRepository.getRepostedPosts();
     } catch (e) {
-      debugPrint('Error loading user posts: $e');
+      debugPrint('Error loading profile data: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> loadUserPosts(int userId) => loadProfileData(userId);
+
+  void syncPostState(PostEntity post) {
+    // 1. Liked tab sync
+    if (post.isLiked) {
+      final idx = _likedPosts.indexWhere((p) => p.id == post.id);
+      if (idx == -1) {
+        _likedPosts.insert(0, post);
+      } else {
+        _likedPosts[idx] = post;
+      }
+    } else {
+      _likedPosts.removeWhere((p) => p.id == post.id);
+    }
+
+    // 2. Bookmarked tab sync
+    if (post.isBookmarked) {
+      final idx = _bookmarkedPosts.indexWhere((p) => p.id == post.id);
+      if (idx == -1) {
+        _bookmarkedPosts.insert(0, post);
+      } else {
+        _bookmarkedPosts[idx] = post;
+      }
+    } else {
+      _bookmarkedPosts.removeWhere((p) => p.id == post.id);
+    }
+
+    // 3. Reposted tab sync
+    if (post.isReposted) {
+      final idx = _repostedPosts.indexWhere((p) => p.id == post.id);
+      if (idx == -1) {
+        _repostedPosts.insert(0, post);
+      } else {
+        _repostedPosts[idx] = post;
+      }
+    } else {
+      _repostedPosts.removeWhere((p) => p.id == post.id);
+    }
+
+    // 4. Private vs Public tab sync
+    if (post.isPrivate) {
+      _userPosts.removeWhere((p) => p.id == post.id);
+      final idx = _privatePosts.indexWhere((p) => p.id == post.id);
+      if (idx == -1) {
+        _privatePosts.insert(0, post);
+      } else {
+        _privatePosts[idx] = post;
+      }
+    } else {
+      _privatePosts.removeWhere((p) => p.id == post.id);
+      final idx = _userPosts.indexWhere((p) => p.id == post.id);
+      if (idx != -1) {
+        _userPosts[idx] = post;
+      } else if (post.userId == 1) {
+        _userPosts.insert(0, post);
+      }
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> toggleLike(int postId) async {
+    final all = [..._userPosts, ..._privatePosts, ..._likedPosts, ..._bookmarkedPosts, ..._repostedPosts];
+    final match = all.firstWhere((p) => p.id == postId, orElse: () => _likedPosts.isNotEmpty ? _likedPosts.first : _userPosts.first);
+    final newLiked = !match.isLiked;
+    final updated = match.copyWith(
+      isLiked: newLiked,
+      likesCount: newLiked ? match.likesCount + 1 : (match.likesCount > 0 ? match.likesCount - 1 : 0),
+    );
+    syncPostState(updated);
+    try {
+      await postRepository.toggleLike(postId, match.isLiked);
+    } catch (_) {}
+  }
+
+  Future<void> toggleBookmark(int postId) async {
+    final all = [..._userPosts, ..._privatePosts, ..._likedPosts, ..._bookmarkedPosts, ..._repostedPosts];
+    final match = all.firstWhere((p) => p.id == postId, orElse: () => _bookmarkedPosts.isNotEmpty ? _bookmarkedPosts.first : _userPosts.first);
+    final newBookmarked = !match.isBookmarked;
+    final updated = match.copyWith(
+      isBookmarked: newBookmarked,
+      bookmarksCount: newBookmarked ? match.bookmarksCount + 1 : (match.bookmarksCount > 0 ? match.bookmarksCount - 1 : 0),
+    );
+    syncPostState(updated);
+    try {
+      await postRepository.toggleBookmark(postId, match.isBookmarked);
+    } catch (_) {}
+  }
+
+  Future<void> toggleRepost(int postId) async {
+    final all = [..._userPosts, ..._privatePosts, ..._likedPosts, ..._bookmarkedPosts, ..._repostedPosts];
+    final match = all.firstWhere((p) => p.id == postId, orElse: () => _repostedPosts.isNotEmpty ? _repostedPosts.first : _userPosts.first);
+    final newReposted = !match.isReposted;
+    final updated = match.copyWith(
+      isReposted: newReposted,
+      sharesCount: newReposted ? match.sharesCount + 1 : (match.sharesCount > 0 ? match.sharesCount - 1 : 0),
+    );
+    syncPostState(updated);
+    try {
+      await postRepository.toggleRepost(postId, match.isReposted);
+    } catch (_) {}
+  }
+
+  Future<void> togglePrivate(int postId) async {
+    final all = [..._userPosts, ..._privatePosts, ..._likedPosts, ..._bookmarkedPosts, ..._repostedPosts];
+    final match = all.firstWhere((p) => p.id == postId, orElse: () => _privatePosts.isNotEmpty ? _privatePosts.first : _userPosts.first);
+    final newPrivate = !match.isPrivate;
+    final updated = match.copyWith(isPrivate: newPrivate);
+    syncPostState(updated);
+    try {
+      await postRepository.togglePrivate(postId, match.isPrivate);
+    } catch (_) {}
   }
 
   void updateAuthorAvatar(int userId, String newAvatar) {

@@ -7,6 +7,7 @@ import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'package:social_hub/presentation/widgets/smart_media_image.dart';
@@ -268,7 +269,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     });
 
     if (!post.isLiked) {
-      context.read<FeedProvider>().toggleLike(post.id);
+      context.read<FeedProvider>().toggleLike(post.id).then((updated) {
+        if (updated != null && mounted) {
+          context.read<ProfileProvider>().syncPostState(updated);
+        }
+      });
     }
 
     Future.delayed(const Duration(milliseconds: 750), () {
@@ -752,9 +757,12 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                 icon: Icons.favorite,
                 iconColor: currentPostInState.isLiked ? AppColors.primary : Colors.white,
                 label: Formatters.formatCount(currentPostInState.likesCount),
-                onTap: () {
+                onTap: () async {
                   AppAudioService.instance.playPopSound();
-                  feedProvider.toggleLike(currentPostInState.id);
+                  final updated = await feedProvider.toggleLike(currentPostInState.id);
+                  if (updated != null && context.mounted) {
+                    context.read<ProfileProvider>().syncPostState(updated);
+                  }
                 },
               ),
               const SizedBox(height: 14),
@@ -783,9 +791,12 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                 icon: Icons.bookmark_rounded,
                 iconColor: currentPostInState.isBookmarked ? const Color(0xFFFFD700) : Colors.white,
                 label: Formatters.formatCount(currentPostInState.bookmarksCount),
-                onTap: () {
+                onTap: () async {
                   AppAudioService.instance.playChimeSound();
-                  feedProvider.toggleBookmark(currentPostInState.id);
+                  final updated = await feedProvider.toggleBookmark(currentPostInState.id);
+                  if (updated != null && context.mounted) {
+                    context.read<ProfileProvider>().syncPostState(updated);
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(currentPostInState.isBookmarked ? 'Dihapus dari Favorit' : 'Disimpan ke Favorit ✨'),
@@ -806,7 +817,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
                   showModalBottomSheet(
                     context: context,
                     backgroundColor: Colors.transparent,
-                    builder: (_) => const ShareSheet(),
+                    builder: (_) => ShareSheet(post: currentPostInState),
                   );
                 },
               ),

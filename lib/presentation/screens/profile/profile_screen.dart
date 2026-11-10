@@ -25,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Future.microtask(() {
       final user = context.read<AuthProvider>().currentUser;
       final userId = user?.id ?? 1;
-      context.read<ProfileProvider>().loadUserPosts(userId);
+      context.read<ProfileProvider>().loadProfileData(userId);
     });
   }
 
@@ -368,8 +368,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.watch<AuthProvider>();
     final profileProvider = context.watch<ProfileProvider>();
     final user = auth.currentUser;
-    final posts = profileProvider.userPosts;
     final selectedSubTab = profileProvider.selectedSubTab;
+
+    final publicPosts = profileProvider.userPosts;
+    final privatePosts = profileProvider.privatePosts;
+    final repostedPosts = profileProvider.repostedPosts;
+    final bookmarkedPosts = profileProvider.bookmarkedPosts;
+    final likedPosts = profileProvider.likedPosts;
 
     final displayName = user?.username ?? 'andrianpei';
     final bioText = user?.bio.isNotEmpty == true ? user!.bio : 'Taken 🤍';
@@ -603,114 +608,137 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // Sub-Tab Content Rendering
             if (selectedSubTab == 0) ...[
-              // Tab 0: Clean 3-Column Video Grid showing ONLY authentic uploaded video(s)
-              if (posts.isEmpty)
+              // Tab 0: Clean 3-Column Video Grid showing Public uploaded video(s)
+              if (publicPosts.isEmpty)
                 _buildEmptyTabState(
                   icon: Icons.videocam_outlined,
-                  title: 'Belum Ada Video',
+                  title: 'Belum Ada Video Publik',
                   description: 'Unggah video pertama Anda lewat tombol Kamera di menu bawah.',
                 )
               else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 1.5,
-                    mainAxisSpacing: 1.5,
-                    childAspectRatio: 0.78,
-                  ),
-                  itemCount: posts.length,
-                  itemBuilder: (context, index) {
-                    final post = posts[index];
-                    return GestureDetector(
-                      onTap: () {
-                        // Navigate to interactive Full-Screen Reel View
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PostDetailReelScreen(
-                              posts: posts,
-                              initialIndex: index,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // Video thumbnail image
-                          SmartMediaImage(
-                            pathOrUrl: post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                          ),
-
-                          // Dark bottom gradient for view count readability
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
-                                begin: Alignment.center,
-                                end: Alignment.bottomCenter,
-                              ),
-                            ),
-                          ),
-
-                          // Bottom left Play count icon and formatted number (e.g. '▷ 182K')
-                          Positioned(
-                            left: 6,
-                            bottom: 6,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.play_arrow_outlined, color: Colors.white, size: 16),
-                                const SizedBox(width: 2),
-                                Text(
-                                  Formatters.formatCompactK(post.viewCount),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                _buildPostGrid(publicPosts, countIcon: Icons.play_arrow_outlined),
             ] else if (selectedSubTab == 1) ...[
-              _buildEmptyTabState(
-                icon: Icons.lock_outline,
-                title: 'Video Pribadi Anda',
-                description: 'Hanya Anda yang dapat melihat video di tab ini. Anda dapat mengubah privasi video kapan saja.',
-              ),
+              // Tab 1: Private (Locked) Videos
+              if (privatePosts.isEmpty)
+                _buildEmptyTabState(
+                  icon: Icons.lock_outline,
+                  title: 'Video Pribadi Anda',
+                  description: 'Hanya Anda yang dapat melihat video di tab ini. Anda dapat mengunci video kapan saja lewat menu Bagikan.',
+                )
+              else
+                _buildPostGrid(privatePosts, countIcon: Icons.lock_outline),
             ] else if (selectedSubTab == 2) ...[
-              _buildEmptyTabState(
-                icon: Icons.repeat,
-                title: 'Posting Ulang Video',
-                description: 'Posting ulang video kreator favorit Anda untuk merekomendasikannya ke teman dan pengikut.',
-              ),
+              // Tab 2: Reposted Videos
+              if (repostedPosts.isEmpty)
+                _buildEmptyTabState(
+                  icon: Icons.repeat,
+                  title: 'Posting Ulang Video',
+                  description: 'Posting ulang video kreator favorit Anda untuk merekomendasikannya ke teman dan pengikut.',
+                )
+              else
+                _buildPostGrid(repostedPosts, countIcon: Icons.repeat),
             ] else if (selectedSubTab == 3) ...[
-              _buildEmptyTabState(
-                icon: Icons.bookmark_outline,
-                title: 'Favorit & Koleksi',
-                description: 'Semua postingan, suara latar, produk TikTok Shop, dan efek tersimpan akan dikelompokkan di sini.',
-              ),
+              // Tab 3: Favorit & Koleksi (Bookmarks)
+              if (bookmarkedPosts.isEmpty)
+                _buildEmptyTabState(
+                  icon: Icons.bookmark_outline,
+                  title: 'Favorit & Koleksi',
+                  description: 'Semua postingan yang Anda simpan sebagai favorit di Beranda akan dikelompokkan di sini.',
+                )
+              else
+                _buildPostGrid(bookmarkedPosts, countIcon: Icons.bookmark_outline),
             ] else if (selectedSubTab == 4) ...[
-              _buildEmptyTabState(
-                icon: Icons.favorite_outline,
-                title: 'Hanya Anda yang dapat melihat tab ini',
-                description: 'Video yang Anda sukai dirahasiakan dari publik. Anda dapat mengubah setelan visibilitas ini di Privasi.',
-              ),
+              // Tab 4: Disukai / Liked Videos
+              if (likedPosts.isEmpty)
+                _buildEmptyTabState(
+                  icon: Icons.favorite_outline,
+                  title: 'Hanya Anda yang dapat melihat tab ini',
+                  description: 'Video yang Anda sukai dirahasiakan dari publik. Ketuk ikon Love di Beranda untuk menyukai video.',
+                )
+              else
+                _buildPostGrid(likedPosts, countIcon: Icons.favorite, useLikeCount: true),
             ],
             const SizedBox(height: 40),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPostGrid(List<PostEntity> list, {IconData countIcon = Icons.play_arrow_outlined, bool useLikeCount = false}) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 1.5,
+        mainAxisSpacing: 1.5,
+        childAspectRatio: 0.78,
+      ),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final post = list[index];
+        final countLabel = useLikeCount
+            ? Formatters.formatCompactK(post.likesCount)
+            : Formatters.formatCompactK(post.viewCount > 0 ? post.viewCount : post.likesCount);
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PostDetailReelScreen(
+                  posts: list,
+                  initialIndex: index,
+                ),
+              ),
+            );
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Video thumbnail image
+              SmartMediaImage(
+                pathOrUrl: post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+
+              // Dark bottom gradient for count readability
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
+                    begin: Alignment.center,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+
+              // Bottom left count badge
+              Positioned(
+                left: 6,
+                bottom: 6,
+                child: Row(
+                  children: [
+                    Icon(countIcon, color: countIcon == Icons.favorite ? AppColors.primary : Colors.white, size: 14),
+                    const SizedBox(width: 3),
+                    Text(
+                      countLabel,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

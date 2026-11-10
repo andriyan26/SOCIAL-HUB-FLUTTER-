@@ -18,6 +18,26 @@ class PostRepositoryImpl implements PostRepository {
   }
 
   @override
+  Future<List<PostEntity>> getLikedPosts() async {
+    return await localDataSource.getLikedPosts();
+  }
+
+  @override
+  Future<List<PostEntity>> getBookmarkedPosts() async {
+    return await localDataSource.getBookmarkedPosts();
+  }
+
+  @override
+  Future<List<PostEntity>> getRepostedPosts() async {
+    return await localDataSource.getRepostedPosts();
+  }
+
+  @override
+  Future<List<PostEntity>> getPrivatePosts(int userId) async {
+    return await localDataSource.getPrivateUserPosts(userId);
+  }
+
+  @override
   Future<void> toggleLike(int postId, bool currentLiked) async {
     final posts = await localDataSource.getFeedPosts();
     final post = posts.firstWhere((p) => p.id == postId, orElse: () => posts.first);
@@ -33,6 +53,21 @@ class PostRepositoryImpl implements PostRepository {
     final newBookmarked = !currentBookmarked;
     final newCount = newBookmarked ? post.bookmarksCount + 1 : (post.bookmarksCount > 0 ? post.bookmarksCount - 1 : 0);
     await localDataSource.updatePostBookmark(postId, newBookmarked, newCount);
+  }
+
+  @override
+  Future<void> toggleRepost(int postId, bool currentReposted) async {
+    final posts = await localDataSource.getFeedPosts();
+    final post = posts.firstWhere((p) => p.id == postId, orElse: () => posts.first);
+    final newReposted = !currentReposted;
+    final newShares = newReposted ? post.sharesCount + 1 : (post.sharesCount > 0 ? post.sharesCount - 1 : 0);
+    await localDataSource.updatePostRepost(postId, newReposted, newShares);
+  }
+
+  @override
+  Future<void> togglePrivate(int postId, bool currentPrivate) async {
+    final newPrivate = !currentPrivate;
+    await localDataSource.updatePostPrivate(postId, newPrivate);
   }
 
   @override

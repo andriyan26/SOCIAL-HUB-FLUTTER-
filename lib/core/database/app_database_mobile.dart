@@ -69,6 +69,8 @@ class AppDatabase {
         bookmarks_count INTEGER DEFAULT 0,
         is_liked INTEGER DEFAULT 0,
         is_bookmarked INTEGER DEFAULT 0,
+        is_reposted INTEGER DEFAULT 0,
+        is_private INTEGER DEFAULT 0,
         view_count INTEGER DEFAULT 0,
         thumbnail_path TEXT,
         created_at TEXT NOT NULL
