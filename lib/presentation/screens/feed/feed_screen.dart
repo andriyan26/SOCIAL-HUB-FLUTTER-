@@ -7,6 +7,7 @@ import 'package:social_hub/core/utils/formatters.dart';
 import 'package:social_hub/core/services/app_audio_service.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/presentation/providers/feed_provider.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 import 'widgets/rotating_music_disc.dart';
