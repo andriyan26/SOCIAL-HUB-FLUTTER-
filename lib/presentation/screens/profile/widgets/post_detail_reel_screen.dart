@@ -47,7 +47,10 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
   }
 
   void _initializeCurrentVideo() {
-    _videoController?.pause();
+    try {
+      _videoController?.setVolume(0.0);
+      _videoController?.pause();
+    } catch (_) {}
     _videoController?.dispose();
     _videoController = null;
 
@@ -71,7 +74,10 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
 
   @override
   void dispose() {
-    _videoController?.pause();
+    try {
+      _videoController?.setVolume(0.0);
+      _videoController?.pause();
+    } catch (_) {}
     _videoController?.dispose();
     _pageController.dispose();
     super.dispose();

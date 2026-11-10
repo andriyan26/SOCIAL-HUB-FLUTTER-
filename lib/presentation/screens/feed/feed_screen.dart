@@ -13,6 +13,7 @@ import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 import 'widgets/rotating_music_disc.dart';
 import 'widgets/comments_sheet.dart';
 import 'widgets/share_sheet.dart';
+import 'web_video_silencer.dart';
 
 class FeedScreen extends StatefulWidget {
   final bool isActive;
@@ -36,6 +37,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   int _currentPlayingIndex = 0;
   String _currentVideoUrl = '';
   int? _lastTopPostId;
+  int _playRequestToken = 0;
 
   @override
   void initState() {
@@ -66,13 +68,18 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   void _handleActiveChange(bool active) {
     if (!active) {
       _wasPlayingBeforeLeaving = _videoController?.value.isPlaying ?? false;
-      _videoController?.pause();
+      try {
+        _videoController?.setVolume(0.0);
+        _videoController?.pause();
+      } catch (_) {}
+      silenceBackgroundWebVideos();
       if (mounted) {
         setState(() {
           _isPlaying = false;
         });
       }
     } else {
+      silenceBackgroundWebVideos();
       final posts = context.read<FeedProvider>().posts;
       if (posts.isNotEmpty) {
         final targetIndex = _currentPlayingIndex.clamp(0, posts.length - 1);
@@ -82,7 +89,10 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         if (_videoController == null || _currentVideoUrl != targetUrl) {
           _playVideoForIndex(targetIndex, posts);
         } else if (_wasPlayingBeforeLeaving) {
-          _videoController?.play();
+          try {
+            _videoController?.setVolume(1.0);
+            _videoController?.play();
+          } catch (_) {}
           if (mounted) {
             setState(() {
               _isPlaying = true;
@@ -103,24 +113,42 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         _videoController != null &&
         _isVideoInitialized) {
       if (widget.isActive && !(_videoController!.value.isPlaying)) {
-        await _videoController!.play();
+        try {
+          await _videoController!.setVolume(1.0);
+          await _videoController!.play();
+        } catch (_) {}
         if (mounted) setState(() => _isPlaying = true);
       }
       return;
     }
 
+    final int token = ++_playRequestToken;
     _currentPlayingIndex = index;
     _currentVideoUrl = url;
 
+    // 1. Immediately mute and stop existing controller so sound stops in 0ms!
     final oldController = _videoController;
     _videoController = null;
     _isVideoInitialized = false;
-    if (mounted) setState(() {});
 
     if (oldController != null) {
-      await oldController.pause();
-      await oldController.dispose();
+      try {
+        oldController.setVolume(0.0);
+        oldController.pause();
+      } catch (_) {}
+      // Safely dispose old controller in background
+      Future.microtask(() async {
+        try {
+          await oldController.pause();
+          await oldController.dispose();
+        } catch (_) {}
+      });
     }
+
+    // 2. Also silence any stray HTML5 video elements in browser DOM
+    silenceBackgroundWebVideos();
+
+    if (mounted) setState(() {});
 
     try {
       VideoPlayerController newController;
@@ -132,39 +160,78 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
 
       await newController.initialize();
       await newController.setLooping(true);
+
+      // Check if user has already scrolled away or left feed while initializing
+      if (token != _playRequestToken || !mounted || !widget.isActive) {
+        try {
+          newController.setVolume(0.0);
+          newController.pause();
+        } catch (_) {}
+        newController.dispose();
+        return;
+      }
+
       await newController.setVolume(1.0);
 
-      if (widget.isActive) {
+      if (widget.isActive && _isPlaying) {
         await newController.play();
       }
 
-      if (mounted && _currentPlayingIndex == index) {
+      if (token == _playRequestToken && mounted) {
         setState(() {
           _videoController = newController;
           _isVideoInitialized = true;
           _isPlaying = widget.isActive;
         });
       } else {
+        try {
+          newController.setVolume(0.0);
+          newController.pause();
+        } catch (_) {}
         newController.dispose();
       }
     } catch (e) {
       debugPrint('Feed video play notice ($url): $e, fallback to andrian asset');
-      if (mounted && _currentPlayingIndex == index) {
-        try {
-          final fallback = VideoPlayerController.asset(AppAssets.videoAndrian);
-          await fallback.initialize();
-          await fallback.setLooping(true);
-          if (widget.isActive) await fallback.play();
-          if (mounted) {
-            setState(() {
-              _videoController = fallback;
-              _isVideoInitialized = true;
-              _isPlaying = widget.isActive;
-            });
-          }
-        } catch (_) {}
+      if (token == _playRequestToken && mounted && widget.isActive) {
+        _playFallbackVideo(index, token);
       }
     }
+  }
+
+  Future<void> _playFallbackVideo(int index, int token) async {
+    try {
+      final fallback = VideoPlayerController.asset(AppAssets.videoAndrian);
+      await fallback.initialize();
+      await fallback.setLooping(true);
+
+      if (token != _playRequestToken || !mounted || !widget.isActive) {
+        try {
+          fallback.setVolume(0.0);
+          fallback.pause();
+        } catch (_) {}
+        fallback.dispose();
+        return;
+      }
+
+      await fallback.setVolume(1.0);
+      if (widget.isActive && _isPlaying) {
+        await fallback.play();
+      }
+
+      if (token == _playRequestToken && mounted) {
+        setState(() {
+          _videoController = fallback;
+          _isVideoInitialized = true;
+          _isPlaying = widget.isActive;
+        });
+      } else {
+        try {
+          fallback.setVolume(0.0);
+          fallback.pause();
+        } catch (_) {}
+        fallback.dispose();
+      }
+    } catch (_) {}
   }
 
   void _togglePlayPause() {
@@ -185,7 +252,12 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   void dispose() {
     _pageController.dispose();
     _soundWaveController.dispose();
+    try {
+      _videoController?.setVolume(0.0);
+      _videoController?.pause();
+    } catch (_) {}
     _videoController?.dispose();
+    silenceBackgroundWebVideos();
     super.dispose();
   }
 
@@ -321,8 +393,14 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       }
     }
 
-    if (!isFeedActive && (_videoController?.value.isPlaying ?? false)) {
-      _videoController?.pause();
+    if (!isFeedActive) {
+      if (_videoController != null && (_videoController!.value.isPlaying || _videoController!.value.volume > 0)) {
+        try {
+          _videoController!.setVolume(0.0);
+          _videoController!.pause();
+        } catch (_) {}
+        silenceBackgroundWebVideos();
+      }
     }
 
     if (feedProvider.isLoading && posts.isEmpty) {
@@ -401,18 +479,34 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Vertical PageView for TikTok / Reels Feed Swiping
-          PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            onPageChanged: (index) {
-              _playVideoForIndex(index, displayPosts);
+          // 1. Vertical PageView for TikTok / Reels Feed Swiping with instant mute on scroll
+          NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollUpdateNotification) {
+                final page = _pageController.page;
+                if (page != null && (page - _currentPlayingIndex).abs() > 0.45) {
+                  // Mute current controller so audio never bleeds across slides
+                  if (_videoController != null && _videoController!.value.volume > 0) {
+                    try {
+                      _videoController!.setVolume(0.0);
+                    } catch (_) {}
+                  }
+                }
+              }
+              return false;
             },
-            itemCount: displayPosts.length,
-            itemBuilder: (context, index) {
-              final post = displayPosts[index];
-              return _buildFeedItem(post, feedProvider, isCurrentItem: index == _currentPlayingIndex);
-            },
+            child: PageView.builder(
+              controller: _pageController,
+              scrollDirection: Axis.vertical,
+              onPageChanged: (index) {
+                _playVideoForIndex(index, displayPosts);
+              },
+              itemCount: displayPosts.length,
+              itemBuilder: (context, index) {
+                final post = displayPosts[index];
+                return _buildFeedItem(post, feedProvider, isCurrentItem: index == _currentPlayingIndex);
+              },
+            ),
           ),
 
           // 2. Floating Heart Animations on Double Tap
