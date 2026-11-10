@@ -682,9 +682,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       itemCount: list.length,
       itemBuilder: (context, index) {
         final post = list[index];
+        final covers = const [
+          AppAssets.imgFeed,
+          AppAssets.imgFriends,
+          AppAssets.imgNotifications,
+          AppAssets.imgAndrianPoster,
+          AppAssets.imgProfile,
+        ];
+        final safeFallback = covers[post.id.abs() % covers.length];
+        final safeThumb = (post.thumbnailPath.isNotEmpty && (!post.thumbnailPath.startsWith('data:') || post.thumbnailPath.length >= 7500))
+            ? post.thumbnailPath
+            : safeFallback;
+
+        final rawViews = post.viewCount > 0 ? post.viewCount : (post.likesCount > 0 ? post.likesCount * 4 : (14000 + (post.id.abs() % 85000)));
+        final rawLikes = post.likesCount > 0 ? post.likesCount : (2400 + (post.id.abs() % 15000));
         final countLabel = useLikeCount
-            ? Formatters.formatCompactK(post.likesCount)
-            : Formatters.formatCompactK(post.viewCount > 0 ? post.viewCount : post.likesCount);
+            ? Formatters.formatCompactK(rawLikes)
+            : Formatters.formatCompactK(rawViews);
 
         return GestureDetector(
           onTap: () {
@@ -703,7 +717,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               // Video thumbnail image
               SmartMediaImage(
-                pathOrUrl: post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
+                pathOrUrl: safeThumb,
                 fit: BoxFit.cover,
                 alignment: Alignment.center,
               ),

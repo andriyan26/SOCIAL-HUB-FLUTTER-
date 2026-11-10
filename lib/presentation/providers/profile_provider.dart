@@ -247,6 +247,12 @@ class ProfileProvider extends ChangeNotifier {
     required String caption,
     required String musicTitle,
     required String thumbnailPath,
+    int likesCount = 0,
+    int commentsCount = 0,
+    int sharesCount = 0,
+    int bookmarksCount = 0,
+    int viewCount = 0,
+    bool isLiked = false,
   }) async {
     final newPost = await postRepository.createPost(
       userId: userId,
@@ -257,6 +263,12 @@ class ProfileProvider extends ChangeNotifier {
       caption: caption,
       musicTitle: musicTitle,
       thumbnailPath: thumbnailPath,
+      likesCount: likesCount,
+      commentsCount: commentsCount,
+      sharesCount: sharesCount,
+      bookmarksCount: bookmarksCount,
+      viewCount: viewCount,
+      isLiked: isLiked,
     );
     _userPosts.insert(0, newPost);
     notifyListeners();

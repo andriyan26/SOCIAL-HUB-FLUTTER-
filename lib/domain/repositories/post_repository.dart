@@ -22,6 +22,12 @@ abstract class PostRepository {
     required String caption,
     required String musicTitle,
     required String thumbnailPath,
+    int likesCount = 0,
+    int commentsCount = 0,
+    int sharesCount = 0,
+    int bookmarksCount = 0,
+    int viewCount = 0,
+    bool isLiked = false,
   });
   Future<void> deletePost(int postId);
 }

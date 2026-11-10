@@ -486,6 +486,17 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
             ),
           ];
 
+    if (feedProvider.targetPageIndexOnReturn >= 0) {
+      final target = feedProvider.targetPageIndexOnReturn;
+      feedProvider.clearJumpRequest();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(target);
+        }
+        _playVideoForIndex(target, displayPosts);
+      });
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -630,12 +641,24 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         ? currentUser!.name
         : currentPostInState.authorName;
 
+    final covers = const [
+      AppAssets.imgFeed,
+      AppAssets.imgFriends,
+      AppAssets.imgNotifications,
+      AppAssets.imgAndrianPoster,
+      AppAssets.imgProfile,
+    ];
+    final safeFallback = covers[post.id.abs() % covers.length];
+    final safeThumb = (post.thumbnailPath.isNotEmpty && (!post.thumbnailPath.startsWith('data:') || post.thumbnailPath.length >= 7500))
+        ? post.thumbnailPath
+        : safeFallback;
+
     return Stack(
       fit: StackFit.expand,
       children: [
         // A1. Crisp Poster Image (Always rendered underneath so screen is NEVER black)
         SmartMediaImage(
-          pathOrUrl: post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
+          pathOrUrl: safeThumb,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,

@@ -27,6 +27,10 @@ class SmartMediaImage extends StatelessWidget {
     if (pathOrUrl.startsWith('data:')) {
       try {
         final b64 = pathOrUrl.split(',').last;
+        // If base64 is less than 7500 chars, it's a blank/black canvas from mobile browser
+        if (b64.length < 7500) {
+          return Image.asset(AppAssets.imgFeed, fit: fit, width: width, height: height, alignment: alignment);
+        }
         final bytes = base64Decode(b64);
         return Image.memory(
           bytes,
@@ -34,10 +38,10 @@ class SmartMediaImage extends StatelessWidget {
           width: width,
           height: height,
           alignment: alignment,
-          errorBuilder: (_, __, ___) => Image.asset(AppAssets.imgAndrianPoster, fit: fit, width: width, height: height, alignment: alignment),
+          errorBuilder: (_, __, ___) => Image.asset(AppAssets.imgFeed, fit: fit, width: width, height: height, alignment: alignment),
         );
       } catch (_) {
-        return Image.asset(AppAssets.imgAndrianPoster, fit: fit, width: width, height: height, alignment: alignment);
+        return Image.asset(AppAssets.imgFeed, fit: fit, width: width, height: height, alignment: alignment);
       }
     }
 

@@ -18,6 +18,7 @@ class FeedProvider extends ChangeNotifier {
   List<CommentEntity> _currentComments = [];
   bool _isLoadingComments = false;
   bool _isFeedActive = true;
+  int _targetPageIndexOnReturn = -1;
 
   void _initDefaultPosts() {
     _posts = [
@@ -87,6 +88,16 @@ class FeedProvider extends ChangeNotifier {
   List<CommentEntity> get currentComments => _currentComments;
   bool get isLoadingComments => _isLoadingComments;
   bool get isFeedActive => _isFeedActive;
+  int get targetPageIndexOnReturn => _targetPageIndexOnReturn;
+
+  void requestJumpToPage(int index) {
+    _targetPageIndexOnReturn = index;
+    notifyListeners();
+  }
+
+  void clearJumpRequest() {
+    _targetPageIndexOnReturn = -1;
+  }
 
   void setFeedActive(bool active) {
     if (_isFeedActive != active) {
@@ -163,6 +174,7 @@ class FeedProvider extends ChangeNotifier {
   Future<void> addPostToFeed(PostEntity post, {bool saveToDb = false}) async {
     _posts.insert(0, post);
     _activePostIndex = 0;
+    _targetPageIndexOnReturn = 0;
     notifyListeners();
 
     if (saveToDb) {
@@ -312,7 +324,35 @@ class FeedProvider extends ChangeNotifier {
     _isLoadingComments = true;
     notifyListeners();
     try {
-      _currentComments = await postRepository.getComments(postId);
+      var list = await postRepository.getComments(postId);
+      if (list.isEmpty) {
+        // Pre-populate with realistic AI generated community comments
+        final sampleComments = [
+          'Keren banget videonya bang! Vibesnya dapet banget 😍✨',
+          'Aesthetic parah! Spill lokasinya dong bang 🔥🙌',
+          'MasyaAllah seru banget, auto like and follow bang pei 🚀',
+          'Gak pernah gagal kalau bikin video haha! FYP terus ya bang! ❤️👏',
+          'Bagus banget angle videonya, smooth pol! ✨',
+          'Wah viral nih lewat beranda jam segini rame bgt 🔥',
+        ];
+        final commenters = [
+          'aurelie.hermansyah',
+          'ei.kaa',
+          's_anime',
+          'angsuran17',
+          'annisasabila13',
+        ];
+
+        for (int i = 0; i < commenters.length; i++) {
+          final u = commenters[i];
+          final text = sampleComments[i % sampleComments.length];
+          try {
+            await postRepository.addComment(postId, u, text);
+          } catch (_) {}
+        }
+        list = await postRepository.getComments(postId);
+      }
+      _currentComments = list;
     } catch (e) {
       _currentComments = [];
     } finally {

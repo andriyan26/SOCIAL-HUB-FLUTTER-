@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'package:social_hub/core/constants/app_assets.dart';
 import 'package:social_hub/core/services/media_store/web_media_store.dart';
 
 void pickMediaFileNative({
@@ -27,25 +28,47 @@ void pickMediaFileNative({
 
       if (isVideo) {
         WebMediaStore.cacheSelectedVideoBlob(file);
+
+        final covers = [
+          AppAssets.imgFeed,
+          AppAssets.imgFriends,
+          AppAssets.imgNotifications,
+          AppAssets.imgProfile,
+          AppAssets.imgAndrianPoster,
+        ];
+        final defaultThumb = covers[file.name.hashCode.abs() % covers.length];
+
         final video = html.VideoElement()
           ..src = objectUrl
           ..crossOrigin = 'anonymous'
           ..muted = true
+          ..autoplay = true
           ..preload = 'auto';
+
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
 
         bool extracted = false;
         void takeSnapshot() {
           if (extracted) return;
           extracted = true;
           try {
-            final w = video.videoWidth > 0 ? video.videoWidth : 480;
-            final h = video.videoHeight > 0 ? video.videoHeight : 854;
-            final canvas = html.CanvasElement(width: w, height: h);
-            canvas.context2D.drawImage(video, 0, 0);
-            final dataUrl = canvas.toDataUrl('image/jpeg', 0.85);
-            onSelected(file.name, objectUrl, true, dataUrl);
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+              final w = video.videoWidth;
+              final h = video.videoHeight;
+              final canvas = html.CanvasElement(width: w, height: h);
+              canvas.context2D.drawImage(video, 0, 0);
+              final dataUrl = canvas.toDataUrl('image/jpeg', 0.85);
+              final b64 = dataUrl.split(',').last;
+              // Only use dataUrl if it is a real rendered frame, not a black canvas (<7500 chars)
+              if (b64.length >= 7500) {
+                onSelected(file.name, objectUrl, true, dataUrl);
+                return;
+              }
+            }
+            onSelected(file.name, objectUrl, true, defaultThumb);
           } catch (_) {
-            onSelected(file.name, objectUrl, true, null);
+            onSelected(file.name, objectUrl, true, defaultThumb);
           }
         }
 
@@ -53,8 +76,8 @@ void pickMediaFileNative({
           video.currentTime = 0.5;
         });
         video.onSeeked.listen((_) => takeSnapshot());
-        // Fallback after 600ms if seeking or metadata takes longer
-        Future.delayed(const Duration(milliseconds: 600), () {
+        // Fallback after 500ms
+        Future.delayed(const Duration(milliseconds: 500), () {
           if (!extracted) {
             takeSnapshot();
           }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
@@ -165,51 +166,56 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
 
     final caption = _captionController.text.trim().isNotEmpty
         ? _captionController.text.trim()
-        : 'Video baru di Social Hub ✨ #fyp';
+        : 'Momen seru video baru di Social Hub! 🚀 #socialhub #fyp #viral';
 
     final effectiveVideo = widget.videoUrl.isNotEmpty ? widget.videoUrl : AppAssets.videoLanding;
-    final effectiveThumb = (widget.thumbnailUrl.isNotEmpty && widget.thumbnailUrl.length > 200)
-        ? widget.thumbnailUrl
-        : (widget.isVideo ? AppAssets.imgFeed : AppAssets.imgProfile);
 
-    final newPost = PostEntity(
-      id: DateTime.now().millisecondsSinceEpoch,
+    // Pick varied aesthetic cover so thumbnail is NEVER solid black
+    final covers = const [
+      AppAssets.imgFeed,
+      AppAssets.imgFriends,
+      AppAssets.imgNotifications,
+      AppAssets.imgAndrianPoster,
+      AppAssets.imgProfile,
+    ];
+    final defaultThumb = covers[caption.hashCode.abs() % covers.length];
+    final effectiveThumb = (widget.thumbnailUrl.isNotEmpty && (!widget.thumbnailUrl.startsWith('data:') || widget.thumbnailUrl.length >= 7500))
+        ? widget.thumbnailUrl
+        : defaultThumb;
+
+    // AI Viral Engagement Simulator: Generate varied numbers in the thousands (ribuan)
+    final random = math.Random();
+    final dynamicLikes = 14500 + random.nextInt(78200); // 14.5K - 92.7K
+    final dynamicComments = 280 + random.nextInt(1650); // 280 - 1.9K
+    final dynamicShares = 1200 + random.nextInt(8800); // 1.2K - 10K
+    final dynamicBookmarks = 650 + random.nextInt(5600); // 650 - 6.2K
+    final dynamicViews = 45000 + random.nextInt(340000); // 45K - 385K
+
+    // 1. Save post to database and insert to ProfileProvider user video grid
+    final savedPost = await profileProvider.createNewPost(
       userId: user?.id ?? 1,
-      authorName: user?.name ?? 'Andrian',
-      authorUsername: user?.username ?? 'andrianpei',
+      authorName: user?.name.isNotEmpty == true ? user!.name : 'Andrian Aja',
+      authorUsername: user?.username.isNotEmpty == true ? user!.username : 'andrianpei',
       authorAvatar: user?.avatarUrl.isNotEmpty == true ? user!.avatarUrl : AppAssets.imgProfile,
       videoUrl: effectiveVideo,
       caption: caption,
       musicTitle: widget.soundTitle.isNotEmpty ? widget.soundTitle : '♫ Sound Asli - andrianpei',
-      likesCount: 1,
-      commentsCount: 0,
-      sharesCount: 0,
-      bookmarksCount: 0,
-      isLiked: true,
-      isBookmarked: false,
-      viewCount: 1,
       thumbnailPath: effectiveThumb,
-      createdAt: 'Baru saja',
+      likesCount: dynamicLikes,
+      commentsCount: dynamicComments,
+      sharesCount: dynamicShares,
+      bookmarksCount: dynamicBookmarks,
+      viewCount: dynamicViews,
+      isLiked: true,
     );
 
-    // 1. Save post to database and insert to ProfileProvider user video grid
-    final savedPost = await profileProvider.createNewPost(
-      userId: newPost.userId,
-      authorName: newPost.authorName,
-      authorUsername: newPost.authorUsername,
-      authorAvatar: newPost.authorAvatar,
-      videoUrl: newPost.videoUrl,
-      caption: newPost.caption,
-      musicTitle: newPost.musicTitle,
-      thumbnailPath: newPost.thumbnailPath,
-    );
-
-    // Save to IndexedDB and localStorage so video never disappears after refresh
+    // Save to IndexedDB and localStorage so video and thumbnail never disappear
     await WebMediaStore.savePostVideo(savedPost.id, WebMediaStore.getCachedSelectedVideoBlob());
     WebMediaStore.savePostThumbnail(savedPost.id, savedPost.thumbnailPath);
 
-    // 2. Add post directly to FeedProvider (shows at index 0 on top of Beranda)
+    // 2. Add post directly to FeedProvider at index 0 and request immediate page jump to 0
     await feedProvider.addPostToFeed(savedPost, saveToDb: false);
+    feedProvider.requestJumpToPage(0);
 
     if (mounted) {
       _videoController?.pause();

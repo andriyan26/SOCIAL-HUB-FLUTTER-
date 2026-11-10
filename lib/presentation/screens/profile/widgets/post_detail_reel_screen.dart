@@ -300,7 +300,9 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
             )
           else
             SmartMediaImage(
-              pathOrUrl: post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgFeed,
+              pathOrUrl: (post.thumbnailPath.isNotEmpty && (!post.thumbnailPath.startsWith('data:') || post.thumbnailPath.length >= 7500))
+                  ? post.thumbnailPath
+                  : AppAssets.imgFeed,
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,

@@ -98,6 +98,12 @@ class PostRepositoryImpl implements PostRepository {
     required String caption,
     required String musicTitle,
     required String thumbnailPath,
+    int likesCount = 0,
+    int commentsCount = 0,
+    int sharesCount = 0,
+    int bookmarksCount = 0,
+    int viewCount = 0,
+    bool isLiked = false,
   }) async {
     final now = DateTime.now().toIso8601String();
     return await localDataSource.insertPost({
@@ -108,13 +114,13 @@ class PostRepositoryImpl implements PostRepository {
       'video_url': videoUrl,
       'caption': caption,
       'music_title': musicTitle,
-      'likes_count': 0,
-      'comments_count': 0,
-      'shares_count': 0,
-      'bookmarks_count': 0,
-      'is_liked': 0,
+      'likes_count': likesCount,
+      'comments_count': commentsCount,
+      'shares_count': sharesCount,
+      'bookmarks_count': bookmarksCount,
+      'is_liked': isLiked ? 1 : 0,
       'is_bookmarked': 0,
-      'view_count': 0,
+      'view_count': viewCount,
       'thumbnail_path': thumbnailPath,
       'created_at': now,
     });

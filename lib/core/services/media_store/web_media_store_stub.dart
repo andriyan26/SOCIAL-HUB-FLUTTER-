@@ -9,3 +9,4 @@ class WebMediaStore {
   static void savePostThumbnail(int postId, String thumbnailData) {}
   static String? getPostThumbnail(int postId) => null;
 }
+
