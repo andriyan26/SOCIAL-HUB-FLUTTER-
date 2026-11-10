@@ -166,8 +166,8 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
         ? _captionController.text.trim()
         : 'Video baru di Social Hub ✨ #fyp';
 
-    final effectiveVideo = widget.videoUrl.isNotEmpty ? widget.videoUrl : AppAssets.videoAndrian;
-    final effectiveThumb = widget.thumbnailUrl.isNotEmpty
+    final effectiveVideo = widget.videoUrl.isNotEmpty ? widget.videoUrl : AppAssets.videoLanding;
+    final effectiveThumb = (widget.thumbnailUrl.isNotEmpty && widget.thumbnailUrl.length > 200)
         ? widget.thumbnailUrl
         : (widget.isVideo ? AppAssets.imgFeed : AppAssets.imgProfile);
 

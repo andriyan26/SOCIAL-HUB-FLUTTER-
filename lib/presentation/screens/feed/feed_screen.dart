@@ -192,16 +192,18 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         newController.dispose();
       }
     } catch (e) {
-      debugPrint('Feed video play notice ($url): $e, fallback to andrian asset');
+      debugPrint('Feed video play notice ($url): $e, fallback asset');
       if (token == _playRequestToken && mounted && widget.isActive) {
-        _playFallbackVideo(index, token);
+        final isDefault = (url == AppAssets.videoAndrian);
+        _playFallbackVideo(index, token, isDefaultPost: isDefault);
       }
     }
   }
 
-  Future<void> _playFallbackVideo(int index, int token) async {
+  Future<void> _playFallbackVideo(int index, int token, {bool isDefaultPost = false}) async {
     try {
-      final fallback = VideoPlayerController.asset(AppAssets.videoAndrian);
+      final assetPath = isDefaultPost ? AppAssets.videoAndrian : AppAssets.videoLanding;
+      final fallback = VideoPlayerController.asset(assetPath);
       await fallback.initialize();
       await fallback.setLooping(true);
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:social_hub/core/constants/app_assets.dart';
+import 'package:social_hub/core/services/cloud_sync_service.dart';
 import 'package:social_hub/domain/entities/post_entity.dart';
 import 'package:social_hub/domain/repositories/post_repository.dart';
 
@@ -107,6 +108,48 @@ class FeedProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+
+    // Pull cloud posts in background to sync from other devices
+    Future.microtask(() async {
+      try {
+        final cloudPosts = await CloudSyncService.fetchCloudPosts();
+        bool hasNew = false;
+        for (final map in cloudPosts) {
+          final pid = map['id'] is int ? map['id'] as int : int.tryParse(map['id'].toString()) ?? 0;
+          if (pid != 0 && _posts.every((p) => p.id != pid)) {
+            final newPost = PostEntity(
+              id: pid,
+              userId: map['user_id'] is int ? map['user_id'] as int : int.tryParse(map['user_id'].toString()) ?? 1,
+              authorName: map['author_name']?.toString() ?? 'Andrian',
+              authorUsername: map['author_username']?.toString() ?? 'andrianpei',
+              authorAvatar: map['author_avatar']?.toString() ?? AppAssets.imgProfile,
+              videoUrl: map['video_url']?.toString() ?? AppAssets.videoLanding,
+              caption: map['caption']?.toString() ?? '',
+              musicTitle: map['music_title']?.toString() ?? '♫ Sound Asli - andrianpei',
+              likesCount: map['likes_count'] is int ? map['likes_count'] as int : 0,
+              commentsCount: map['comments_count'] is int ? map['comments_count'] as int : 0,
+              sharesCount: map['shares_count'] is int ? map['shares_count'] as int : 0,
+              bookmarksCount: map['bookmarks_count'] is int ? map['bookmarks_count'] as int : 0,
+              isLiked: (map['is_liked'] == 1 || map['is_liked'] == true),
+              isBookmarked: (map['is_bookmarked'] == 1 || map['is_bookmarked'] == true),
+              isReposted: (map['is_reposted'] == 1 || map['is_reposted'] == true),
+              isPrivate: (map['is_private'] == 1 || map['is_private'] == true),
+              viewCount: map['view_count'] is int ? map['view_count'] as int : 1,
+              thumbnailPath: map['thumbnail_path']?.toString() ?? AppAssets.imgFeed,
+              createdAt: map['created_at']?.toString() ?? 'Baru saja',
+            );
+
+            _posts.insert(0, newPost);
+            hasNew = true;
+          }
+        }
+        if (hasNew) {
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint('Cloud feed sync notice: $e');
+      }
+    });
   }
 
   Future<void> addPostToFeed(PostEntity post, {bool saveToDb = false}) async {

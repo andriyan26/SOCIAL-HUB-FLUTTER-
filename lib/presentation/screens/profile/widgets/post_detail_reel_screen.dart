@@ -13,6 +13,7 @@ import 'package:social_hub/presentation/screens/feed/widgets/comments_sheet.dart
 import 'package:social_hub/presentation/screens/feed/widgets/share_sheet.dart';
 import 'package:social_hub/presentation/screens/feed/widgets/rotating_music_disc.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
+import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 
 class PostDetailReelScreen extends StatefulWidget {
   final List<PostEntity> posts;
@@ -78,6 +79,20 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
         }
       }).catchError((err) {
         debugPrint('Notice initializing reel video ($videoUrl): $err');
+        try {
+          final fallbackCtrl = VideoPlayerController.asset(AppAssets.videoLanding);
+          fallbackCtrl.initialize().then((_) {
+            if (mounted) {
+              fallbackCtrl.setLooping(true);
+              fallbackCtrl.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
+              fallbackCtrl.play();
+              setState(() {
+                _videoController = fallbackCtrl;
+                _isPlaying = true;
+              });
+            }
+          });
+        } catch (_) {}
       });
     }
   }
@@ -219,8 +234,8 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
               ),
             )
           else
-            Image.asset(
-              post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster,
+            SmartMediaImage(
+              pathOrUrl: post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgFeed,
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,
