@@ -70,7 +70,7 @@ class CameraProvider extends ChangeNotifier {
     }
   }
 
-  void startRecording() {
+  void startRecording({VoidCallback? onComplete}) {
     _isRecording = true;
     _recordedSeconds = 0;
     notifyListeners();
@@ -83,6 +83,9 @@ class CameraProvider extends ChangeNotifier {
           : (_durationMode == CameraDurationMode.sixtySec ? 60 : 600);
       if (_recordedSeconds >= maxLimit) {
         stopRecording();
+        if (onComplete != null) {
+          onComplete();
+        }
       } else {
         notifyListeners();
       }

@@ -12,6 +12,7 @@ import 'package:social_hub/presentation/providers/feed_provider.dart';
 import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 import 'webcam_preview.dart';
 import 'web_file_picker.dart';
+import 'video_publish_preview_screen.dart';
 
 class CameraStudioScreen extends StatefulWidget {
   final VoidCallback? onClose;
@@ -147,10 +148,15 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
       if (camera.isRecording) {
         camera.stopRecording();
         AppAudioService.instance.playChimeSound();
-        _showPublishDialog(context, camera, isVideo: true);
+        _openPublishPreviewScreen(isVideo: true);
       } else {
         AppAudioService.instance.playPopSound();
-        camera.startRecording();
+        camera.startRecording(onComplete: () {
+          if (mounted) {
+            AppAudioService.instance.playChimeSound();
+            _openPublishPreviewScreen(isVideo: true);
+          }
+        });
       }
     }
   }
@@ -161,9 +167,45 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
         setState(() => _showFlash = false);
-        _showPublishDialog(context, camera, isVideo: false);
+        _openPublishPreviewScreen(isVideo: false);
       }
     });
+  }
+
+  void _openPublishPreviewScreen({
+    required bool isVideo,
+    String? selectedThumb,
+    String? selectedVideoUrl,
+    String? customFileName,
+    String? initialCaption,
+  }) {
+    final camera = context.read<CameraProvider>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VideoPublishPreviewScreen(
+          videoUrl: selectedVideoUrl ?? AppAssets.videoAndrian,
+          thumbnailUrl: selectedThumb ?? (isVideo ? AppAssets.imgAndrianPoster : AppAssets.imgFeed),
+          isVideo: isVideo,
+          initialCaption: initialCaption,
+          customFileName: customFileName,
+          soundTitle: camera.selectedSound != 'Tambah suara'
+              ? camera.selectedSound
+              : '♫ Sound Asli - andrianpei',
+          onPublishSuccess: () {
+            Navigator.pop(context); // Close preview screen
+            if (widget.onPublishSuccess != null) {
+              widget.onPublishSuccess!();
+            } else if (widget.onClose != null) {
+              widget.onClose!();
+            }
+          },
+          onBackToCamera: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
   }
 
   void _startTimerCountdown(int seconds, VoidCallback onFinished) {
@@ -958,9 +1000,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   pickMediaFileNative(
                     onSelected: (fileName, objectUrl, isVideo) {
                       if (!mounted) return;
-                      _showPublishDialog(
-                        this.context,
-                        camera,
+                      _openPublishPreviewScreen(
                         isVideo: isVideo,
                         selectedVideoUrl: objectUrl,
                         selectedThumb: isVideo ? AppAssets.imgAndrianPoster : objectUrl,
@@ -982,9 +1022,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   child: GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      _showPublishDialog(
-                        context,
-                        camera,
+                      _openPublishPreviewScreen(
                         isVideo: true,
                         selectedThumb: AppAssets.imgAndrianPoster,
                         selectedVideoUrl: AppAssets.videoAndrian,
@@ -1016,9 +1054,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   child: GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      _showPublishDialog(
-                        context,
-                        camera,
+                      _openPublishPreviewScreen(
                         isVideo: true,
                         selectedThumb: AppAssets.imgFeed,
                         selectedVideoUrl: AppAssets.videoLanding,
@@ -1050,9 +1086,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   child: GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      _showPublishDialog(
-                        context,
-                        camera,
+                      _openPublishPreviewScreen(
                         isVideo: false,
                         selectedThumb: AppAssets.imgProfile,
                         initialCaption: 'Foto studio portrait Social Hub ✨ #photoshoot',
@@ -1079,180 +1113,6 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showPublishDialog(
-    BuildContext context,
-    CameraProvider camera, {
-    required bool isVideo,
-    String? selectedThumb,
-    String? selectedVideoUrl,
-    String? customFileName,
-    String? initialCaption,
-  }) {
-    final defaultCaption = initialCaption ?? (isVideo
-        ? 'Momen seru studio Social Hub hari ini! 🚀 #socialhub #fyp #viral'
-        : 'Hasil jepretan studio kamera terbaru! ✨ #aesthetic #photo');
-
-    final captionController = TextEditingController(text: defaultCaption);
-    final thumb = selectedThumb ?? (isVideo ? AppAssets.imgAndrianPoster : AppAssets.imgFeed);
-    final videoPath = selectedVideoUrl ?? AppAssets.videoAndrian;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E1E24),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isVideo ? 'Publikasikan Video Baru' : 'Publikasikan Foto Baru',
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white70),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            if (customFileName != null) ...[
-              Text('File: $customFileName', style: const TextStyle(color: Color(0xFF20D5EC), fontSize: 12)),
-              const SizedBox(height: 8),
-            ],
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SmartMediaImage(
-                    pathOrUrl: thumb,
-                    width: 68,
-                    height: 90,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: captionController,
-                    maxLines: 3,
-                    style: const TextStyle(color: Colors.white, fontSize: 13.5),
-                    decoration: InputDecoration(
-                      hintText: 'Jelaskan konten Anda, tambahkan tagar...',
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      filled: true,
-                      fillColor: const Color(0xFF141418),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                const Icon(Icons.music_note, color: AppColors.primary, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    camera.selectedSound != 'Tambah suara' ? camera.selectedSound : '♫ Sound Asli - andrianpei',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
-                ),
-                onPressed: () async {
-                  final user = context.read<AuthProvider>().currentUser;
-                  final feedProvider = context.read<FeedProvider>();
-                  final profileProvider = context.read<ProfileProvider>();
-
-                  final newPost = PostEntity(
-                    id: DateTime.now().millisecondsSinceEpoch,
-                    userId: user?.id ?? 1,
-                    authorName: user?.name ?? 'Andrian Pei',
-                    authorUsername: user?.username ?? 'andrianpei',
-                    authorAvatar: user?.avatarUrl.isNotEmpty == true ? user!.avatarUrl : AppAssets.imgAndrianPoster,
-                    videoUrl: videoPath,
-                    caption: captionController.text.trim().isNotEmpty
-                        ? captionController.text.trim()
-                        : 'Konten terbaru dari Studio Social Hub! ✨ #fyp #socialhub',
-                    musicTitle: camera.selectedSound != 'Tambah suara'
-                        ? camera.selectedSound
-                        : '♫ Sound Asli - andrianpei',
-                    likesCount: 1,
-                    commentsCount: 0,
-                    sharesCount: 0,
-                    bookmarksCount: 0,
-                    isLiked: true,
-                    isBookmarked: false,
-                    viewCount: 1,
-                    thumbnailPath: thumb,
-                    createdAt: 'Baru saja',
-                  );
-
-                  // 1. Add post directly to FeedProvider (shows at the very top of Beranda)
-                  feedProvider.addPostToFeed(newPost);
-
-                  // 2. Add post directly to ProfileProvider (shows in profile video grid)
-                  await profileProvider.createNewPost(
-                    userId: newPost.userId,
-                    authorName: newPost.authorName,
-                    authorUsername: newPost.authorUsername,
-                    authorAvatar: newPost.authorAvatar,
-                    videoUrl: newPost.videoUrl,
-                    caption: newPost.caption,
-                    musicTitle: newPost.musicTitle,
-                    thumbnailPath: newPost.thumbnailPath,
-                  );
-
-                  if (context.mounted) {
-                    Navigator.pop(context); // close sheet
-                    if (widget.onPublishSuccess != null) {
-                      widget.onPublishSuccess!(); // return directly to Beranda (Feed)
-                    } else if (widget.onClose != null) {
-                      widget.onClose!();
-                    }
-                    AppAudioService.instance.playChimeSound();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('🎉 Video berhasil dipublikasikan ke Beranda & Profil Anda!'),
-                        backgroundColor: Color(0xFF10B981),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Posting Sekarang', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-              ),
             ),
           ],
         ),
