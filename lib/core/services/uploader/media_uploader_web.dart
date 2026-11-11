@@ -29,8 +29,10 @@ Future<String?> uploadMediaToHostingerServer(
 
       // Real-time upload progress event
       request.upload.onProgress.listen((e) {
-        if (e.lengthComputable && e.total > 0) {
-          final p = e.loaded / e.total;
+        final total = e.total;
+        final loaded = e.loaded;
+        if (e.lengthComputable == true && total != null && total > 0 && loaded != null) {
+          final p = loaded / total;
           if (onProgress != null) {
             onProgress(p.clamp(0.0, 1.0));
           }
@@ -64,8 +66,10 @@ Future<String?> uploadMediaToHostingerServer(
       request.setRequestHeader('Content-Type', 'application/json');
 
       request.upload.onProgress.listen((e) {
-        if (e.lengthComputable && e.total > 0) {
-          final p = e.loaded / e.total;
+        final total = e.total;
+        final loaded = e.loaded;
+        if (e.lengthComputable == true && total != null && total > 0 && loaded != null) {
+          final p = loaded / total;
           if (onProgress != null) {
             onProgress(p.clamp(0.0, 1.0));
           }
