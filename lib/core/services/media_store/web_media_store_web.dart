@@ -10,6 +10,7 @@ class WebMediaStore {
   static const int _dbVersion = 1;
 
   static html.Blob? _cachedSelectedVideoBlob;
+  static final Map<String, String> _inMemoryBlobUrls = {};
 
   static void cacheSelectedVideoBlob(dynamic blob) {
     if (blob is html.Blob) {
@@ -19,6 +20,17 @@ class WebMediaStore {
 
   static dynamic getCachedSelectedVideoBlob() {
     return _cachedSelectedVideoBlob;
+  }
+
+  static void registerActiveBlobUrl(String key, String blobUrl) {
+    if (key.isNotEmpty && blobUrl.isNotEmpty) {
+      _inMemoryBlobUrls[key] = blobUrl;
+    }
+  }
+
+  static String? getActiveBlobUrl(String key) {
+    if (key.isEmpty) return null;
+    return _inMemoryBlobUrls[key];
   }
 
   static Future<idb.Database?> _openDb() async {

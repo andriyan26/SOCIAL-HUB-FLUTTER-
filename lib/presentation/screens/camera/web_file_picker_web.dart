@@ -28,15 +28,8 @@ void pickMediaFileNative({
 
       if (isVideo) {
         WebMediaStore.cacheSelectedVideoBlob(file);
-
-        final covers = [
-          AppAssets.imgFeed,
-          AppAssets.imgFriends,
-          AppAssets.imgNotifications,
-          AppAssets.imgProfile,
-          AppAssets.imgAndrianPoster,
-        ];
-        final defaultThumb = covers[file.name.hashCode.abs() % covers.length];
+        WebMediaStore.registerActiveBlobUrl(file.name, objectUrl);
+        const defaultThumb = AppAssets.imgAndrianPoster;
 
         final video = html.VideoElement()
           ..src = objectUrl
@@ -60,7 +53,6 @@ void pickMediaFileNative({
               canvas.context2D.drawImage(video, 0, 0);
               final dataUrl = canvas.toDataUrl('image/jpeg', 0.85);
               final b64 = dataUrl.split(',').last;
-              // Only use dataUrl if it is a real rendered frame, not a black canvas (<7500 chars)
               if (b64.length >= 7500) {
                 onSelected(file.name, objectUrl, true, dataUrl);
                 return;
@@ -73,11 +65,14 @@ void pickMediaFileNative({
         }
 
         video.onLoadedMetadata.listen((_) {
-          video.currentTime = 0.5;
+          try {
+            video.currentTime = 0.5;
+          } catch (_) {}
         });
+        video.onCanPlay.listen((_) => takeSnapshot());
         video.onSeeked.listen((_) => takeSnapshot());
-        // Fallback after 500ms
-        Future.delayed(const Duration(milliseconds: 500), () {
+        // Fallback after 1500ms
+        Future.delayed(const Duration(milliseconds: 1500), () {
           if (!extracted) {
             takeSnapshot();
           }

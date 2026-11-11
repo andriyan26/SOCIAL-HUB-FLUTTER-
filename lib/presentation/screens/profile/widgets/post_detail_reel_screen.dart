@@ -60,18 +60,22 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
     if (widget.posts.isNotEmpty && _currentIndex < widget.posts.length) {
       final post = widget.posts[_currentIndex];
       String videoUrl = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoLanding;
-      if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+      
+      // Check in-memory instant blob URL first (0ms latency for creator)
+      String? playUrl = WebMediaStore.getActiveBlobUrl(videoUrl) ?? WebMediaStore.getActiveBlobUrl(post.id.toString());
+      if (playUrl == null || playUrl.isEmpty) {
         final storedUrl = await WebMediaStore.getPostVideoUrl(post.id);
         if (storedUrl != null && storedUrl.isNotEmpty) {
-          videoUrl = storedUrl;
+          playUrl = storedUrl;
         }
       }
+      playUrl ??= videoUrl;
 
       VideoPlayerController controller;
-      if (videoUrl.startsWith('assets/')) {
-        controller = VideoPlayerController.asset(videoUrl);
+      if (playUrl.startsWith('assets/')) {
+        controller = VideoPlayerController.asset(playUrl);
       } else {
-        controller = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+        controller = VideoPlayerController.networkUrl(Uri.parse(playUrl));
       }
 
       _videoController = controller;
@@ -287,7 +291,17 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Video Player with fallback to high-resolution poster
+          // 1. Always render crisp poster underneath so screen is NEVER black or blank
+          SmartMediaImage(
+            pathOrUrl: (post.thumbnailPath.isNotEmpty && (!post.thumbnailPath.startsWith('data:') || post.thumbnailPath.length >= 7500))
+                ? post.thumbnailPath
+                : AppAssets.imgAndrianPoster,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+
+          // 2. Video Player on top once ready
           if (_videoController != null && _videoController!.value.isInitialized)
             IgnorePointer(
               child: FittedBox(
@@ -299,15 +313,6 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
                   child: VideoPlayer(_videoController!),
                 ),
               ),
-            )
-          else
-            SmartMediaImage(
-              pathOrUrl: (post.thumbnailPath.isNotEmpty && (!post.thumbnailPath.startsWith('data:') || post.thumbnailPath.length >= 7500))
-                  ? post.thumbnailPath
-                  : AppAssets.imgFeed,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
             ),
 
           // 2. Gradients for high contrast readability

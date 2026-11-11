@@ -84,16 +84,18 @@ class ProfileProvider extends ChangeNotifier {
               videoUrl: vUrl.isNotEmpty ? vUrl : AppAssets.videoLanding,
               caption: map['caption']?.toString() ?? '',
               musicTitle: map['music_title']?.toString() ?? '♫ Sound Asli - andrianpei',
-              likesCount: map['likes_count'] is int ? map['likes_count'] as int : 0,
-              commentsCount: map['comments_count'] is int ? map['comments_count'] as int : 0,
-              sharesCount: map['shares_count'] is int ? map['shares_count'] as int : 0,
-              bookmarksCount: map['bookmarks_count'] is int ? map['bookmarks_count'] as int : 0,
-              isLiked: (map['is_liked'] == 1 || map['is_liked'] == true),
-              isBookmarked: (map['is_bookmarked'] == 1 || map['is_bookmarked'] == true),
-              isReposted: (map['is_reposted'] == 1 || map['is_reposted'] == true),
-              isPrivate: (map['is_private'] == 1 || map['is_private'] == true),
-              viewCount: map['view_count'] is int ? map['view_count'] as int : 1,
-              thumbnailPath: map['thumbnail_path']?.toString() ?? AppAssets.imgFeed,
+              likesCount: map['likes_count'] is int ? (map['likes_count'] as int) : (int.tryParse(map['likes_count']?.toString() ?? '') ?? 0),
+              commentsCount: map['comments_count'] is int ? (map['comments_count'] as int) : (int.tryParse(map['comments_count']?.toString() ?? '') ?? 0),
+              sharesCount: map['shares_count'] is int ? (map['shares_count'] as int) : (int.tryParse(map['shares_count']?.toString() ?? '') ?? 0),
+              bookmarksCount: map['bookmarks_count'] is int ? (map['bookmarks_count'] as int) : (int.tryParse(map['bookmarks_count']?.toString() ?? '') ?? 0),
+              isLiked: (map['is_liked'] == 1 || map['is_liked'] == '1' || map['is_liked'] == true),
+              isBookmarked: (map['is_bookmarked'] == 1 || map['is_bookmarked'] == '1' || map['is_bookmarked'] == true),
+              isReposted: (map['is_reposted'] == 1 || map['is_reposted'] == '1' || map['is_reposted'] == true),
+              isPrivate: (map['is_private'] == 1 || map['is_private'] == '1' || map['is_private'] == true),
+              viewCount: map['view_count'] is int ? (map['view_count'] as int) : (int.tryParse(map['view_count']?.toString() ?? '') ?? 1),
+              thumbnailPath: (map['thumbnail_path'] != null && map['thumbnail_path'].toString().isNotEmpty)
+                  ? map['thumbnail_path'].toString()
+                  : AppAssets.imgAndrianPoster,
               createdAt: map['created_at']?.toString() ?? 'Baru saja',
             );
 

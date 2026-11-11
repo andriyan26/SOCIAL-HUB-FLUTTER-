@@ -157,7 +157,9 @@ class FeedProvider extends ChangeNotifier {
               isReposted: (map['is_reposted'] == 1 || map['is_reposted'] == true),
               isPrivate: (map['is_private'] == 1 || map['is_private'] == true),
               viewCount: map['view_count'] is int ? map['view_count'] as int : 1,
-              thumbnailPath: map['thumbnail_path']?.toString() ?? AppAssets.imgFeed,
+              thumbnailPath: (map['thumbnail_path'] != null && map['thumbnail_path'].toString().isNotEmpty)
+                  ? map['thumbnail_path'].toString()
+                  : AppAssets.imgAndrianPoster,
               createdAt: map['created_at']?.toString() ?? 'Baru saja',
             );
 

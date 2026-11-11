@@ -37,8 +37,8 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
       'path': AppAssets.imgProfile,
     },
     {
-      'label': 'Aesthetic',
-      'path': AppAssets.imgFeed,
+      'label': 'Wisudawan',
+      'path': AppAssets.imgAndrianPoster,
     },
     {
       'label': 'Bestie Anime',

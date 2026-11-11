@@ -64,7 +64,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
         0, 0, 0, 1, 0,
       ],
       'color': const Color(0xFFFBBF24),
-      'avatar': AppAssets.imgFeed,
+      'avatar': AppAssets.imgAndrianPoster,
     },
     {
       'id': 2,
@@ -185,7 +185,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
       MaterialPageRoute(
         builder: (_) => VideoPublishPreviewScreen(
           videoUrl: selectedVideoUrl ?? AppAssets.videoAndrian,
-          thumbnailUrl: selectedThumb ?? (isVideo ? AppAssets.imgAndrianPoster : AppAssets.imgFeed),
+          thumbnailUrl: selectedThumb ?? (isVideo ? AppAssets.imgAndrianPoster : AppAssets.imgProfile),
           isVideo: isVideo,
           initialCaption: initialCaption,
           customFileName: customFileName,
@@ -1003,7 +1003,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                       _openPublishPreviewScreen(
                         isVideo: isVideo,
                         selectedVideoUrl: objectUrl,
-                        selectedThumb: thumbnailUrl ?? objectUrl ?? (isVideo ? AppAssets.imgFeed : AppAssets.imgProfile),
+                        selectedThumb: thumbnailUrl ?? objectUrl ?? (isVideo ? AppAssets.imgAndrianPoster : AppAssets.imgProfile),
                         customFileName: fileName,
                       );
                     },
@@ -1012,7 +1012,7 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
               ),
             ),
             const SizedBox(height: 18),
-            const Text('Atau Pilih Media Cepat:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+            const Text('Atau Pilih Media Unggulan:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
             const SizedBox(height: 10),
 
             // Quick Presets
@@ -1044,38 +1044,6 @@ class _CameraStudioScreenState extends State<CameraStudioScreen> with TickerProv
                           ),
                           const SizedBox(height: 6),
                           const Text('Andrian.MOV\n(Video Wisuda)', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      _openPublishPreviewScreen(
-                        isVideo: true,
-                        selectedThumb: AppAssets.imgFeed,
-                        selectedVideoUrl: AppAssets.videoLanding,
-                        initialCaption: 'Keseruan dance viral hari ini ✨👯‍♀️ #trending #tiktok',
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF141418),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: Image.asset(AppAssets.imgFeed, height: 60, width: double.infinity, fit: BoxFit.cover),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text('Dance Viral\n(Video TikTok)', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),

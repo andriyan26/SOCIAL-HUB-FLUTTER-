@@ -208,8 +208,8 @@ class CloudSyncService {
   /// Sync newly published post to cloud database
   static Future<bool> syncPostToCloud(PostEntity post) async {
     final safeThumbnail = (post.thumbnailPath.startsWith('data:') || post.thumbnailPath.length > 500)
-        ? AppAssets.imgFeed
-        : (post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgFeed);
+        ? AppAssets.imgAndrianPoster
+        : (post.thumbnailPath.isNotEmpty ? post.thumbnailPath : AppAssets.imgAndrianPoster);
 
     final safeVideo = (post.videoUrl.startsWith('blob:') || post.videoUrl.isEmpty)
         ? AppAssets.videoLanding

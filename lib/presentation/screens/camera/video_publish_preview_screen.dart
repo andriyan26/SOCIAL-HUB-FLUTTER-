@@ -175,15 +175,10 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
 
     String effectiveVideo = widget.videoUrl.isNotEmpty ? widget.videoUrl : AppAssets.videoLanding;
 
-    // Pick varied aesthetic cover so thumbnail is NEVER solid black
-    final covers = const [
-      AppAssets.imgFeed,
-      AppAssets.imgFriends,
-      AppAssets.imgNotifications,
-      AppAssets.imgAndrianPoster,
-      AppAssets.imgProfile,
-    ];
-    final defaultThumb = covers[caption.hashCode.abs() % covers.length];
+    // Ensure thumbnail is NEVER black or mock images, default to creator poster
+    final defaultThumb = (user?.avatarUrl.isNotEmpty == true && !user!.avatarUrl.startsWith('blob:'))
+        ? user!.avatarUrl
+        : AppAssets.imgAndrianPoster;
     String effectiveThumb = (widget.thumbnailUrl.isNotEmpty && (!widget.thumbnailUrl.startsWith('data:') || widget.thumbnailUrl.length >= 7500))
         ? widget.thumbnailUrl
         : defaultThumb;
@@ -264,10 +259,14 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
       isLiked: true,
     );
 
-    // Save to IndexedDB only if offline fallback, preventing memory bloat on mobile
-    if (!effectiveVideo.startsWith('http://') && !effectiveVideo.startsWith('https://')) {
-      await WebMediaStore.savePostVideo(savedPost.id, WebMediaStore.getCachedSelectedVideoBlob());
+    // Register local blob URL so playback on THIS device is INSTANT in 0ms without re-downloading!
+    if (widget.videoUrl.startsWith('blob:')) {
+      WebMediaStore.registerActiveBlobUrl(savedPost.id.toString(), widget.videoUrl);
+      if (effectiveVideo.isNotEmpty) {
+        WebMediaStore.registerActiveBlobUrl(effectiveVideo, widget.videoUrl);
+      }
     }
+    await WebMediaStore.savePostVideo(savedPost.id, WebMediaStore.getCachedSelectedVideoBlob());
     WebMediaStore.savePostThumbnail(savedPost.id, savedPost.thumbnailPath);
 
     // 2. Add post directly to FeedProvider at index 0 and request immediate page jump to 0

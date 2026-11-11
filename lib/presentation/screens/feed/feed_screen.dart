@@ -109,7 +109,12 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     if (posts.isEmpty || index < 0 || index >= posts.length) return;
     final post = posts[index];
     String url = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    
+    // Check local memory/IndexedDB first for 0ms instantaneous playback without redownload
+    final activeBlob = WebMediaStore.getActiveBlobUrl(url) ?? WebMediaStore.getActiveBlobUrl(post.id.toString());
+    if (activeBlob != null && activeBlob.isNotEmpty) {
+      url = activeBlob;
+    } else {
       final storedVideoUrl = await WebMediaStore.getPostVideoUrl(post.id);
       if (storedVideoUrl != null && storedVideoUrl.isNotEmpty) {
         url = storedVideoUrl;
@@ -159,14 +164,18 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     if (mounted) setState(() {});
 
     try {
+      // 0. Use instant local blob URL if available (0ms zero latency for creator's uploaded video)
+      final instantBlob = WebMediaStore.getActiveBlobUrl(url);
+      final playUrl = (instantBlob != null && instantBlob.isNotEmpty) ? instantBlob : url;
+
       VideoPlayerController newController;
-      if (url.startsWith('assets/')) {
-        newController = VideoPlayerController.asset(url);
+      if (playUrl.startsWith('assets/')) {
+        newController = VideoPlayerController.asset(playUrl);
       } else {
-        newController = VideoPlayerController.networkUrl(Uri.parse(url));
+        newController = VideoPlayerController.networkUrl(Uri.parse(playUrl));
       }
 
-      await newController.initialize();
+      await newController.initialize().timeout(const Duration(seconds: 10));
       await newController.setLooping(true);
 
       // Check if user has already scrolled away or left feed while initializing
@@ -643,17 +652,9 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
         ? currentUser!.name
         : currentPostInState.authorName;
 
-    final covers = const [
-      AppAssets.imgFeed,
-      AppAssets.imgFriends,
-      AppAssets.imgNotifications,
-      AppAssets.imgAndrianPoster,
-      AppAssets.imgProfile,
-    ];
-    final safeFallback = covers[post.id.abs() % covers.length];
     final safeThumb = (post.thumbnailPath.isNotEmpty && (!post.thumbnailPath.startsWith('data:') || post.thumbnailPath.length >= 7500))
         ? post.thumbnailPath
-        : safeFallback;
+        : AppAssets.imgAndrianPoster;
 
     return Stack(
       fit: StackFit.expand,
@@ -666,6 +667,19 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           height: double.infinity,
           alignment: Alignment.center,
         ),
+
+        // Subtle buffer indicator at bottom while video stream warms up
+        if (isCurrentItem && !_isVideoInitialized)
+          const Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: LinearProgressIndicator(
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFE2C55)),
+            ),
+          ),
 
         // A2. Video Player for current active post
         // Wrapped with IgnorePointer so native HTML element does NOT swallow Flutter taps or trigger Edge PiP toolbar
