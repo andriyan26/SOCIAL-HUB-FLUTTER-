@@ -1,0 +1,53 @@
+# ========================================================
+# Hostinger Apache Configuration for Social Hub Flutter Web
+# ========================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Do not rewrite real files or directories
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Allow direct access to API and Uploads
+  RewriteRule ^api/ - [L]
+  RewriteRule ^uploads/ - [L]
+
+  # Route all other frontend requests to Flutter index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# MIME Types for Flutter Web & Media
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+  AddType application/javascript .js
+  AddType application/json .json
+  AddType video/mp4 .mp4
+  AddType video/webm .webm
+  AddType image/webp .webp
+</IfModule>
+
+# CORS Headers
+<IfModule mod_headers.c>
+  Header set Access-Control-Allow-Origin "*"
+  Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+  Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</IfModule>
+
+# Upload & Memory Limits for PHP
+<IfModule mod_php8.c>
+  php_value upload_max_filesize 256M
+  php_value post_max_size 256M
+  php_value memory_limit 512M
+  php_value max_execution_time 300
+  php_value max_input_time 300
+</IfModule>
+<IfModule mod_php7.c>
+  php_value upload_max_filesize 256M
+  php_value post_max_size 256M
+  php_value memory_limit 512M
+  php_value max_execution_time 300
+  php_value max_input_time 300
+</IfModule>

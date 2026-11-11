@@ -72,3 +72,7 @@ migrate_working_dir/
 # Exceptions to allow fonts and icons
 !**/assets/
 
+
+public_html_build/
+*.zip
+

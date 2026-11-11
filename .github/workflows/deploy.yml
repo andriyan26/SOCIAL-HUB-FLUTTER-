@@ -1,4 +1,4 @@
-name: Deploy Flutter Web to GitHub Pages
+name: Deploy Flutter Web to GitHub Pages & Package Hostinger Bundle
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Flutter Web
+      - name: Build Flutter Web (GitHub Pages)
         run: |
           mkdir -p build/web
           flutter build web --release --base-href "/SOCIAL-HUB-FLUTTER-/" --pwa-strategy=none --verbose > build_verbose.log 2>&1 || BUILD_FAILED=1
@@ -49,6 +49,28 @@ jobs:
             git push -f origin build-log || true
             exit 1
           fi
+
+      - name: Prepare Hostinger public_html Bundle
+        run: |
+          mkdir -p build/hostinger
+          cp -r build/web/* build/hostinger/
+          # Replace base-href for Hostinger root domain
+          sed -i 's|<base href="/SOCIAL-HUB-FLUTTER-/">|<base href="/">|g' build/hostinger/index.html
+          # Copy backend API, uploads structure, .htaccess, and SQL
+          cp -r api build/hostinger/
+          cp .htaccess build/hostinger/
+          cp socialhub.sql build/hostinger/
+          mkdir -p build/hostinger/uploads/videos build/hostinger/uploads/images
+          echo "<!DOCTYPE html><html><body>Access Denied</body></html>" > build/hostinger/uploads/index.html
+          # Create zip file
+          cd build/hostinger && zip -r ../../public_html.zip . && cd ../..
+
+      - name: Upload Hostinger ZIP Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hostinger-public_html-zip
+          path: public_html.zip
+          retention-days: 14
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3

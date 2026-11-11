@@ -10,6 +10,7 @@ import 'package:social_hub/presentation/widgets/custom_button.dart';
 import 'package:social_hub/presentation/widgets/custom_text_field.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'package:social_hub/presentation/screens/camera/web_file_picker.dart';
+import 'package:social_hub/core/services/uploader/media_uploader.dart';
 
 class EditProfileSheet extends StatefulWidget {
   const EditProfileSheet({super.key});
@@ -108,11 +109,23 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
       final finalUsername = username.isNotEmpty ? username : (user?.username ?? 'andrianpei');
       final finalBio = bio.isNotEmpty ? bio : (user?.bio ?? 'Taken 🤍');
 
+      String finalAvatar = _selectedAvatar;
+      if (finalAvatar.startsWith('data:')) {
+        final serverAvatar = await uploadMediaToHostingerServer(
+          finalAvatar,
+          isVideo: false,
+          customName: _customUploadedName,
+        );
+        if (serverAvatar != null && serverAvatar.isNotEmpty) {
+          finalAvatar = serverAvatar;
+        }
+      }
+
       await auth.updateProfile(
         name: finalName,
         username: finalUsername,
         bio: finalBio,
-        avatarUrl: _selectedAvatar,
+        avatarUrl: finalAvatar,
       );
 
       if (mounted) {
@@ -121,13 +134,13 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
           userId,
           name: finalName,
           username: finalUsername,
-          avatarUrl: _selectedAvatar,
+          avatarUrl: finalAvatar,
         );
         context.read<ProfileProvider>().updateAuthorProfile(
           userId,
           name: finalName,
           username: finalUsername,
-          avatarUrl: _selectedAvatar,
+          avatarUrl: finalAvatar,
         );
 
         AppAudioService.instance.playChimeSound();

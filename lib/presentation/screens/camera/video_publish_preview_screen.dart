@@ -13,6 +13,7 @@ import 'package:social_hub/presentation/providers/profile_provider.dart';
 import 'package:social_hub/presentation/widgets/app_avatar.dart';
 import 'package:social_hub/presentation/widgets/smart_media_image.dart';
 import 'package:social_hub/core/services/media_store/web_media_store.dart';
+import 'package:social_hub/core/services/uploader/media_uploader.dart';
 
 class VideoPublishPreviewScreen extends StatefulWidget {
   final String videoUrl;
@@ -168,7 +169,7 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
         ? _captionController.text.trim()
         : 'Momen seru video baru di Social Hub! 🚀 #socialhub #fyp #viral';
 
-    final effectiveVideo = widget.videoUrl.isNotEmpty ? widget.videoUrl : AppAssets.videoLanding;
+    String effectiveVideo = widget.videoUrl.isNotEmpty ? widget.videoUrl : AppAssets.videoLanding;
 
     // Pick varied aesthetic cover so thumbnail is NEVER solid black
     final covers = const [
@@ -179,9 +180,32 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
       AppAssets.imgProfile,
     ];
     final defaultThumb = covers[caption.hashCode.abs() % covers.length];
-    final effectiveThumb = (widget.thumbnailUrl.isNotEmpty && (!widget.thumbnailUrl.startsWith('data:') || widget.thumbnailUrl.length >= 7500))
+    String effectiveThumb = (widget.thumbnailUrl.isNotEmpty && (!widget.thumbnailUrl.startsWith('data:') || widget.thumbnailUrl.length >= 7500))
         ? widget.thumbnailUrl
         : defaultThumb;
+
+    // If running on Hostinger, upload video & thumbnail directly to the Hostinger server
+    final cachedBlob = WebMediaStore.getCachedSelectedVideoBlob();
+    if (widget.isVideo && cachedBlob != null) {
+      final serverVideoUrl = await uploadMediaToHostingerServer(
+        cachedBlob,
+        isVideo: true,
+        customName: widget.customFileName,
+      );
+      if (serverVideoUrl != null && serverVideoUrl.isNotEmpty) {
+        effectiveVideo = serverVideoUrl;
+      }
+    }
+
+    if (effectiveThumb.startsWith('data:')) {
+      final serverThumbUrl = await uploadMediaToHostingerServer(
+        effectiveThumb,
+        isVideo: false,
+      );
+      if (serverThumbUrl != null && serverThumbUrl.isNotEmpty) {
+        effectiveThumb = serverThumbUrl;
+      }
+    }
 
     // AI Viral Engagement Simulator: Generate varied numbers in the thousands (ribuan)
     final random = math.Random();
