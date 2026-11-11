@@ -97,3 +97,4 @@ if (!empty($json['data'])) {
 }
 
 jsonResponse(['success' => false, 'error' => 'No file received'], 400);
+

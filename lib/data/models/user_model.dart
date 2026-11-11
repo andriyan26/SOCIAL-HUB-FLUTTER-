@@ -22,9 +22,9 @@ class UserModel extends UserEntity {
       email: map['email'] ?? '',
       avatarUrl: map['avatar_url'] ?? '',
       bio: map['bio'] ?? '',
-      followingCount: map['following_count'] ?? 0,
-      followersCount: map['followers_count'] ?? 0,
-      likesCount: map['likes_count'] ?? 0,
+      followingCount: map['following_count'] is int ? map['following_count'] : (int.tryParse(map['following_count']?.toString() ?? '') ?? 0),
+      followersCount: map['followers_count'] is int ? map['followers_count'] : (int.tryParse(map['followers_count']?.toString() ?? '') ?? 0),
+      likesCount: map['likes_count'] is int ? map['likes_count'] : (int.tryParse(map['likes_count']?.toString() ?? '') ?? 0),
       createdAt: map['created_at'] ?? '',
     );
   }

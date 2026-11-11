@@ -109,9 +109,11 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     if (posts.isEmpty || index < 0 || index >= posts.length) return;
     final post = posts[index];
     String url = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
-    final storedVideoUrl = await WebMediaStore.getPostVideoUrl(post.id);
-    if (storedVideoUrl != null && storedVideoUrl.isNotEmpty) {
-      url = storedVideoUrl;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      final storedVideoUrl = await WebMediaStore.getPostVideoUrl(post.id);
+      if (storedVideoUrl != null && storedVideoUrl.isNotEmpty) {
+        url = storedVideoUrl;
+      }
     }
 
     if (_currentPlayingIndex == index &&

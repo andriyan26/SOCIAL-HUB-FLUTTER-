@@ -47,3 +47,4 @@ function getBaseUrl() {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     return rtrim($protocol . $host, '/');
 }
+

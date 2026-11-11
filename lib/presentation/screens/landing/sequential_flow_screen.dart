@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:social_hub/presentation/providers/auth_provider.dart';
 import 'package:social_hub/presentation/providers/ui_frame_provider.dart';
 import 'package:social_hub/presentation/screens/landing/animated_splash_screen.dart';
 import 'package:social_hub/presentation/screens/auth/animated_login_screen.dart';
@@ -26,10 +27,20 @@ class _SequentialFlowScreenState extends State<SequentialFlowScreen> {
   @override
   void initState() {
     super.initState();
-    _currentStage = widget.initialStage;
+    final auth = context.read<AuthProvider>();
+    if (auth.isAuthenticated || auth.currentUser != null) {
+      _currentStage = FlowStage.beranda;
+    } else {
+      _currentStage = widget.initialStage;
+    }
   }
 
   void _goToLogin() {
+    final auth = context.read<AuthProvider>();
+    if (auth.isAuthenticated || auth.currentUser != null) {
+      _goToBeranda();
+      return;
+    }
     setState(() {
       _currentStage = FlowStage.login;
     });
@@ -49,6 +60,14 @@ class _SequentialFlowScreenState extends State<SequentialFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep user state in sync with authentication status
+    final auth = context.watch<AuthProvider>();
+    if (auth.isAuthenticated && _currentStage == FlowStage.login) {
+      _currentStage = FlowStage.beranda;
+    } else if (auth.status == AuthStatus.unauthenticated && _currentStage == FlowStage.beranda) {
+      _currentStage = FlowStage.login;
+    }
+
     // Listen for top bar "Ulangi Animasi" clicks
     final replayKey = context.watch<UiFrameProvider>().replayKey;
     if (_lastReplayKey != replayKey) {

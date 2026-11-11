@@ -12,7 +12,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `username` VARCHAR(100) NOT NULL UNIQUE,
   `name` VARCHAR(150) NOT NULL,
   `email` VARCHAR(191) NOT NULL UNIQUE,
@@ -31,8 +31,8 @@ CREATE TABLE `users` (
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `posts`;
 CREATE TABLE `posts` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT NOT NULL,
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT UNSIGNED NOT NULL DEFAULT 1,
   `author_name` VARCHAR(150) NOT NULL,
   `author_username` VARCHAR(100) NOT NULL,
   `author_avatar` TEXT NULL,
@@ -60,9 +60,9 @@ CREATE TABLE `posts` (
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `comments`;
 CREATE TABLE `comments` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `post_id` INT NOT NULL,
-  `user_id` INT DEFAULT 1,
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `post_id` BIGINT UNSIGNED NOT NULL,
+  `user_id` BIGINT UNSIGNED DEFAULT 1,
   `username` VARCHAR(100) NOT NULL,
   `user_avatar` TEXT NULL,
   `text` TEXT NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE `comments` (
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `friends`;
 CREATE TABLE `friends` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `username` VARCHAR(100) NOT NULL,
   `name` VARCHAR(150) NOT NULL,
   `avatar_url` TEXT NULL,
@@ -89,8 +89,8 @@ CREATE TABLE `friends` (
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `notifications`;
 CREATE TABLE `notifications` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT NOT NULL DEFAULT 1,
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT UNSIGNED NOT NULL DEFAULT 1,
   `type` VARCHAR(50) NOT NULL,
   `title` VARCHAR(150) NOT NULL,
   `message` TEXT NOT NULL,
@@ -105,9 +105,9 @@ CREATE TABLE `notifications` (
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `post_interactions`;
 CREATE TABLE `post_interactions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT NOT NULL,
-  `post_id` INT NOT NULL,
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `post_id` BIGINT UNSIGNED NOT NULL,
   `type` ENUM('like', 'bookmark', 'repost') NOT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `user_post_type` (`user_id`, `post_id`, `type`),
@@ -121,7 +121,7 @@ CREATE TABLE `post_interactions` (
 
 -- 1. Default Users
 INSERT INTO `users` (`id`, `username`, `name`, `email`, `password`, `avatar_url`, `bio`, `following_count`, `followers_count`, `likes_count`, `created_at`) VALUES
-(1, 'andrianpei', 'Andrian', 'andriandowehz123@gmail.com', 'password123', 'assets/images/img_8668.jpg', 'Ya Sudahilah', 0, 0, 0, NOW()),
+(1, 'andrianpei', 'Andrian', 'andriandowehz123@gmail.com', 'password123', 'assets/images/img_8668.jpg', 'Ya Sudahilah aku yaaa ah jangan ya ini mah !', 0, 0, 0, NOW()),
 (2, 'aurelie.hermansyah', 'Aurelie Hermansyah', 'aurel@socialhub.com', 'password123', 'assets/images/img_8664.jpg', 'Content Creator & Musician ✨', 234, 844000, 3200000, NOW()),
 (3, 'ei.kaa', 'ei.kaa🍭', 'eika@socialhub.com', 'password123', 'assets/images/img_8665.jpg', 'Life is sweet like candy 🍭', 120, 95000, 480000, NOW());
 

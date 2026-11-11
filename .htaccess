@@ -19,21 +19,30 @@
   RewriteRule ^ index.html [L]
 </IfModule>
 
-# MIME Types for Flutter Web & Media
+# MIME Types for Flutter Web, Fonts & Media
 <IfModule mod_mime.c>
   AddType application/wasm .wasm
   AddType application/javascript .js
   AddType application/json .json
+  AddType font/otf .otf
+  AddType font/ttf .ttf
+  AddType font/woff .woff
+  AddType font/woff2 .woff2
   AddType video/mp4 .mp4
   AddType video/webm .webm
+  AddType video/quicktime .mov
   AddType image/webp .webp
+  AddType image/png .png
+  AddType image/jpeg .jpg .jpeg
 </IfModule>
 
-# CORS Headers
+# Streaming & CORS Headers
 <IfModule mod_headers.c>
   Header set Access-Control-Allow-Origin "*"
   Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-  Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+  Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Range"
+  Header set Access-Control-Expose-Headers "Content-Range, Content-Length, Accept-Ranges"
+  Header set Accept-Ranges bytes
 </IfModule>
 
 # Upload & Memory Limits for PHP
@@ -51,3 +60,4 @@
   php_value max_execution_time 300
   php_value max_input_time 300
 </IfModule>
+

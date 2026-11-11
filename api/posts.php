@@ -190,3 +190,4 @@ if ($method === 'GET') {
 } else {
     jsonResponse(['success' => false, 'error' => 'Method not allowed'], 405);
 }
+

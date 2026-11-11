@@ -60,9 +60,11 @@ class _PostDetailReelScreenState extends State<PostDetailReelScreen> {
     if (widget.posts.isNotEmpty && _currentIndex < widget.posts.length) {
       final post = widget.posts[_currentIndex];
       String videoUrl = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoLanding;
-      final storedUrl = await WebMediaStore.getPostVideoUrl(post.id);
-      if (storedUrl != null && storedUrl.isNotEmpty) {
-        videoUrl = storedUrl;
+      if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+        final storedUrl = await WebMediaStore.getPostVideoUrl(post.id);
+        if (storedUrl != null && storedUrl.isNotEmpty) {
+          videoUrl = storedUrl;
+        }
       }
 
       VideoPlayerController controller;

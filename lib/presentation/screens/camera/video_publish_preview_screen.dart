@@ -46,6 +46,8 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
   bool _isVideoInitialized = false;
   bool _isPlaying = true;
   bool _isPublishing = false;
+  double _uploadProgress = 0.0;
+  String _uploadStatus = 'Menyiapkan video...';
   late TextEditingController _captionController;
   String? _selectedFilterName;
 
@@ -156,6 +158,8 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
 
     setState(() {
       _isPublishing = true;
+      _uploadProgress = 0.05;
+      _uploadStatus = 'Menghubungkan ke server Hostinger...';
     });
 
     final auth = context.read<AuthProvider>();
@@ -187,10 +191,24 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
     // If running on Hostinger, upload video & thumbnail directly to the Hostinger server
     final cachedBlob = WebMediaStore.getCachedSelectedVideoBlob();
     if (widget.isVideo && cachedBlob != null) {
+      if (mounted) {
+        setState(() {
+          _uploadProgress = 0.15;
+          _uploadStatus = 'Mengunggah video ke server...';
+        });
+      }
       final serverVideoUrl = await uploadMediaToHostingerServer(
         cachedBlob,
         isVideo: true,
         customName: widget.customFileName,
+        onProgress: (p) {
+          if (mounted) {
+            setState(() {
+              _uploadProgress = 0.15 + (p * 0.70);
+              _uploadStatus = 'Mengunggah video (${(p * 100).toInt()}%)...';
+            });
+          }
+        },
       );
       if (serverVideoUrl != null && serverVideoUrl.isNotEmpty) {
         effectiveVideo = serverVideoUrl;
@@ -198,6 +216,12 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
     }
 
     if (effectiveThumb.startsWith('data:')) {
+      if (mounted) {
+        setState(() {
+          _uploadProgress = 0.88;
+          _uploadStatus = 'Menyiapkan sampul poster...';
+        });
+      }
       final serverThumbUrl = await uploadMediaToHostingerServer(
         effectiveThumb,
         isVideo: false,
@@ -205,6 +229,13 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
       if (serverThumbUrl != null && serverThumbUrl.isNotEmpty) {
         effectiveThumb = serverThumbUrl;
       }
+    }
+
+    if (mounted) {
+      setState(() {
+        _uploadProgress = 0.95;
+        _uploadStatus = 'Mempublikasikan ke Beranda & Profil...';
+      });
     }
 
     // AI Viral Engagement Simulator: Generate varied numbers in the thousands (ribuan)
@@ -233,8 +264,10 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
       isLiked: true,
     );
 
-    // Save to IndexedDB and localStorage so video and thumbnail never disappear
-    await WebMediaStore.savePostVideo(savedPost.id, WebMediaStore.getCachedSelectedVideoBlob());
+    // Save to IndexedDB only if offline fallback, preventing memory bloat on mobile
+    if (!effectiveVideo.startsWith('http://') && !effectiveVideo.startsWith('https://')) {
+      await WebMediaStore.savePostVideo(savedPost.id, WebMediaStore.getCachedSelectedVideoBlob());
+    }
     WebMediaStore.savePostThumbnail(savedPost.id, savedPost.thumbnailPath);
 
     // 2. Add post directly to FeedProvider at index 0 and request immediate page jump to 0
@@ -633,6 +666,84 @@ class _VideoPublishPreviewScreenState extends State<VideoPublishPreviewScreen> {
               ),
             ),
           ),
+
+          // 4. Active Uploading Modal Overlay
+          if (_isPublishing)
+            Container(
+              color: Colors.black.withOpacity(0.85),
+              child: Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 28),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16181F),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.12)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.6),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFE2C55).withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.cloud_upload_rounded,
+                          color: Color(0xFFFE2C55),
+                          size: 38,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        _uploadStatus,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: _uploadProgress,
+                          backgroundColor: Colors.white.withOpacity(0.08),
+                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFE2C55)),
+                          minHeight: 8,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        '${(_uploadProgress * 100).toInt()}% Selesai',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.65),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Video langsung tersimpan permanen di server',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.4),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

@@ -25,3 +25,4 @@ if (!file_exists(VIDEOS_DIR)) {
 if (!file_exists(IMAGES_DIR)) {
     @mkdir(IMAGES_DIR, 0755, true);
 }
+

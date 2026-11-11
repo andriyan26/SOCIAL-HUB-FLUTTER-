@@ -135,14 +135,17 @@ class FeedProvider extends ChangeNotifier {
         bool hasNew = false;
         for (final map in cloudPosts) {
           final pid = map['id'] is int ? map['id'] as int : int.tryParse(map['id'].toString()) ?? 0;
-          if (pid != 0 && _posts.every((p) => p.id != pid)) {
+          final vUrl = map['video_url']?.toString() ?? '';
+          final alreadyExists = _posts.any((p) => p.id == pid || (vUrl.isNotEmpty && p.videoUrl == vUrl));
+
+          if (pid != 0 && !alreadyExists) {
             final newPost = PostEntity(
               id: pid,
               userId: map['user_id'] is int ? map['user_id'] as int : int.tryParse(map['user_id'].toString()) ?? 1,
               authorName: map['author_name']?.toString() ?? 'Andrian',
               authorUsername: map['author_username']?.toString() ?? 'andrianpei',
               authorAvatar: map['author_avatar']?.toString() ?? AppAssets.imgProfile,
-              videoUrl: map['video_url']?.toString() ?? AppAssets.videoLanding,
+              videoUrl: vUrl.isNotEmpty ? vUrl : AppAssets.videoLanding,
               caption: map['caption']?.toString() ?? '',
               musicTitle: map['music_title']?.toString() ?? '♫ Sound Asli - andrianpei',
               likesCount: map['likes_count'] is int ? map['likes_count'] as int : 0,

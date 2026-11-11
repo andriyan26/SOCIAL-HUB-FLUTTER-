@@ -160,3 +160,4 @@ Copy-Item -Path $ZipFile -Destination $altZip -Force
 
 $zipSize = (Get-Item $ZipFile).Length / 1MB
 Write-Host "=== BERHASIL! File ZIP Hostinger Siap: $ZipFile ($([Math]::Round($zipSize, 2)) MB) ===" -ForegroundColor Green
+

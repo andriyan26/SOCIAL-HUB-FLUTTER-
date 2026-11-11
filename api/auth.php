@@ -90,3 +90,4 @@ if ($method === 'POST') {
 } else {
     jsonResponse(['success' => false, 'error' => 'Method not allowed'], 405);
 }
+
