@@ -172,46 +172,6 @@ class AppDatabase {
       'created_at': now,
     });
 
-    await db.insert('posts', {
-      'id': 2,
-      'user_id': 2,
-      'author_name': 'Aurelie Hermansyah',
-      'author_username': 'aurelie.hermansyah',
-      'author_avatar': 'assets/images/img_8664.jpg',
-      'video_url': 'assets/videos/konsep_sebelum_login.mp4',
-      'caption': 'Kalo ini sama kembaran aku👯‍♀️',
-      'music_title': '♫ Berisi: Anak Kampung (T...',
-      'likes_count': 844300,
-      'comments_count': 3322,
-      'shares_count': 12300,
-      'bookmarks_count': 17100,
-      'is_liked': 0,
-      'is_bookmarked': 0,
-      'view_count': 1520000,
-      'thumbnail_path': 'assets/images/img_8664.jpg',
-      'created_at': now,
-    });
-
-    await db.insert('posts', {
-      'id': 3,
-      'user_id': 3,
-      'author_name': 'ei.kaa🍭',
-      'author_username': 'ei.kaa',
-      'author_avatar': 'assets/images/img_8665.jpg',
-      'video_url': 'assets/videos/konsep_sebelum_login.mp4',
-      'caption': 'Seru banget jalan-jalan sore bareng bestie! Jangan lupa follow dan like ya guys ✨ #friends #vlog',
-      'music_title': '♫ Beat Aesthetic Viral 2026',
-      'likes_count': 95400,
-      'comments_count': 890,
-      'shares_count': 2800,
-      'bookmarks_count': 5600,
-      'is_liked': 0,
-      'is_bookmarked': 0,
-      'view_count': 280000,
-      'thumbnail_path': 'assets/images/img_8665.jpg',
-      'created_at': now,
-    });
-
     final friendsData = [
       {'username': 'ei.kaa', 'name': 'ei.kaa🍭', 'subtitle': 'Membagikan video kepada Anda', 'is_following': 0},
       {'username': 's_anime', 'name': 's', 'subtitle': 'Orang yang mungkin Anda kenal', 'is_following': 0},

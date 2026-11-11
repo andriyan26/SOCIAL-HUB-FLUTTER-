@@ -32,14 +32,17 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   final Set<int> _followedAuthors = {};
   late AnimationController _soundWaveController;
 
-  VideoPlayerController? _videoController;
-  bool _isVideoInitialized = false;
+  final Map<int, VideoPlayerController> _controllers = {};
+  final Set<int> _loadingIndices = {};
   bool _isPlaying = true;
   bool _wasPlayingBeforeLeaving = true;
   int _currentPlayingIndex = 0;
   String _currentVideoUrl = '';
   int? _lastTopPostId;
   int _playRequestToken = 0;
+
+  VideoPlayerController? get _videoController => _controllers[_currentPlayingIndex];
+  bool get _isVideoInitialized => _videoController?.value.isInitialized ?? false;
 
   @override
   void initState() {
@@ -52,9 +55,14 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
 
     Future.microtask(() async {
       final feed = context.read<FeedProvider>();
-      await feed.loadFeed();
       if (mounted && feed.posts.isNotEmpty) {
         _playVideoForIndex(0, feed.posts);
+      }
+      await feed.loadFeed();
+      if (mounted && feed.posts.isNotEmpty) {
+        if (_currentPlayingIndex != 0 || _currentVideoUrl != feed.posts.first.videoUrl) {
+          _playVideoForIndex(0, feed.posts);
+        }
       }
     });
   }
@@ -92,7 +100,7 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
           _playVideoForIndex(targetIndex, posts);
         } else if (_wasPlayingBeforeLeaving) {
           try {
-            _videoController?.setVolume(1.0);
+            _videoController?.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
             _videoController?.play();
           } catch (_) {}
           if (mounted) {
@@ -105,12 +113,62 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
     }
   }
 
+  /// High-Performance Preloaded Video Playback with 0ms Transition
   Future<void> _playVideoForIndex(int index, List<PostEntity> posts) async {
     if (posts.isEmpty || index < 0 || index >= posts.length) return;
+    final int token = ++_playRequestToken;
+    _currentPlayingIndex = index;
+    final post = posts[index];
+    _currentVideoUrl = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
+
+    // 1. Instantly mute and pause all other controllers so audio transitions seamlessly (0ms)
+    _controllers.forEach((idx, ctrl) {
+      if (idx != index) {
+        try {
+          ctrl.setVolume(0.0);
+          ctrl.pause();
+        } catch (_) {}
+      }
+    });
+    silenceBackgroundWebVideos();
+
+    // 2. Check if controller for this index is ALREADY preloaded & initialized!
+    final existingCtrl = _controllers[index];
+    if (existingCtrl != null && existingCtrl.value.isInitialized) {
+      if (widget.isActive && _isPlaying) {
+        try {
+          await existingCtrl.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
+          await existingCtrl.play();
+        } catch (_) {}
+      }
+      if (mounted) setState(() {});
+    } else {
+      if (mounted) setState(() {});
+      await _initController(index, posts, token, autoPlay: true);
+    }
+
+    // 3. Preload adjacent videos (index + 1 & index - 1) eagerly in background!
+    _preloadAround(index, posts);
+
+    // 4. Safely cleanup controllers outside active window [index - 1, index + 1]
+    _cleanupFarControllers(index);
+  }
+
+  Future<VideoPlayerController?> _initController(
+    int index,
+    List<PostEntity> posts,
+    int token, {
+    bool autoPlay = false,
+  }) async {
+    if (index < 0 || index >= posts.length) return null;
+    if (_controllers.containsKey(index)) return _controllers[index];
+    if (_loadingIndices.contains(index)) return null;
+
+    _loadingIndices.add(index);
     final post = posts[index];
     String url = post.videoUrl.isNotEmpty ? post.videoUrl : AppAssets.videoAndrian;
-    
-    // Check local memory/IndexedDB first for 0ms instantaneous playback without redownload
+
+    // Check instant local blob URL (from creator's upload on this device)
     final activeBlob = WebMediaStore.getActiveBlobUrl(url) ?? WebMediaStore.getActiveBlobUrl(post.id.toString());
     if (activeBlob != null && activeBlob.isNotEmpty) {
       url = activeBlob;
@@ -121,136 +179,91 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
       }
     }
 
-    if (_currentPlayingIndex == index &&
-        _currentVideoUrl == url &&
-        _videoController != null &&
-        _isVideoInitialized) {
-      if (widget.isActive && !(_videoController!.value.isPlaying)) {
-        try {
-          await _videoController!.setVolume(1.0);
-          await _videoController!.play();
-        } catch (_) {}
-        if (mounted) setState(() => _isPlaying = true);
-      }
-      return;
-    }
-
-    final int token = ++_playRequestToken;
-    _currentPlayingIndex = index;
-    _currentVideoUrl = url;
-
-    // 1. Immediately mute and stop existing controller so sound stops in 0ms!
-    final oldController = _videoController;
-    _videoController = null;
-    _isVideoInitialized = false;
-
-    if (oldController != null) {
-      try {
-        oldController.setVolume(0.0);
-        oldController.pause();
-      } catch (_) {}
-      // Safely dispose old controller in background
-      Future.microtask(() async {
-        try {
-          await oldController.pause();
-          await oldController.dispose();
-        } catch (_) {}
-      });
-    }
-
-    // 2. Also silence any stray HTML5 video elements in browser DOM
-    silenceBackgroundWebVideos();
-
-    if (mounted) setState(() {});
-
+    VideoPlayerController? ctrl;
     try {
-      // 0. Use instant local blob URL if available (0ms zero latency for creator's uploaded video)
-      final instantBlob = WebMediaStore.getActiveBlobUrl(url);
-      final playUrl = (instantBlob != null && instantBlob.isNotEmpty) ? instantBlob : url;
-
-      VideoPlayerController newController;
-      if (playUrl.startsWith('assets/')) {
-        newController = VideoPlayerController.asset(playUrl);
+      if (url.startsWith('assets/')) {
+        ctrl = VideoPlayerController.asset(url);
       } else {
-        newController = VideoPlayerController.networkUrl(Uri.parse(playUrl));
+        ctrl = VideoPlayerController.networkUrl(
+          Uri.parse(url),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
       }
 
-      await newController.initialize().timeout(const Duration(seconds: 10));
-      await newController.setLooping(true);
+      await ctrl.initialize().timeout(const Duration(seconds: 30));
+      await ctrl.setLooping(true);
 
-      // Check if user has already scrolled away or left feed while initializing
-      if (token != _playRequestToken || !mounted || !widget.isActive) {
-        try {
-          newController.setVolume(0.0);
-          newController.pause();
-        } catch (_) {}
-        newController.dispose();
-        return;
+      _controllers[index] = ctrl;
+      _loadingIndices.remove(index);
+
+      if (autoPlay && index == _currentPlayingIndex && token == _playRequestToken && mounted && widget.isActive) {
+        await ctrl.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
+        if (_isPlaying) {
+          await ctrl.play();
+        }
+        if (mounted) setState(() {});
       }
-
-      await newController.setVolume(1.0);
-
-      if (widget.isActive && _isPlaying) {
-        await newController.play();
-      }
-
-      if (token == _playRequestToken && mounted) {
-        setState(() {
-          _videoController = newController;
-          _isVideoInitialized = true;
-          _isPlaying = widget.isActive;
-        });
-      } else {
-        try {
-          newController.setVolume(0.0);
-          newController.pause();
-        } catch (_) {}
-        newController.dispose();
-      }
+      return ctrl;
     } catch (e) {
-      debugPrint('Feed video play notice ($url): $e, fallback asset');
-      if (token == _playRequestToken && mounted && widget.isActive) {
+      _loadingIndices.remove(index);
+      try {
+        ctrl?.dispose();
+      } catch (_) {}
+
+      // Fallback asset video
+      try {
         final isDefault = (url == AppAssets.videoAndrian);
-        _playFallbackVideo(index, token, isDefaultPost: isDefault);
+        final fallbackAsset = isDefault ? AppAssets.videoAndrian : AppAssets.videoLanding;
+        final fallbackCtrl = VideoPlayerController.asset(fallbackAsset);
+        await fallbackCtrl.initialize();
+        await fallbackCtrl.setLooping(true);
+        _controllers[index] = fallbackCtrl;
+
+        if (autoPlay && index == _currentPlayingIndex && token == _playRequestToken && mounted && widget.isActive) {
+          await fallbackCtrl.setVolume(AppAudioService.instance.isMuted ? 0.0 : 1.0);
+          if (_isPlaying) {
+            await fallbackCtrl.play();
+          }
+          if (mounted) setState(() {});
+        }
+        return fallbackCtrl;
+      } catch (_) {
+        return null;
       }
     }
   }
 
-  Future<void> _playFallbackVideo(int index, int token, {bool isDefaultPost = false}) async {
-    try {
-      final assetPath = isDefaultPost ? AppAssets.videoAndrian : AppAssets.videoLanding;
-      final fallback = VideoPlayerController.asset(assetPath);
-      await fallback.initialize();
-      await fallback.setLooping(true);
+  void _preloadAround(int currentIndex, List<PostEntity> posts) {
+    if (currentIndex + 1 < posts.length && !_controllers.containsKey(currentIndex + 1)) {
+      Future.microtask(() {
+        _initController(currentIndex + 1, posts, _playRequestToken, autoPlay: false);
+      });
+    }
+    if (currentIndex - 1 >= 0 && !_controllers.containsKey(currentIndex - 1)) {
+      Future.microtask(() {
+        _initController(currentIndex - 1, posts, _playRequestToken, autoPlay: false);
+      });
+    }
+  }
 
-      if (token != _playRequestToken || !mounted || !widget.isActive) {
+  void _cleanupFarControllers(int currentIndex) {
+    final toRemove = <int>[];
+    _controllers.forEach((idx, ctrl) {
+      if ((idx - currentIndex).abs() > 1) {
+        toRemove.add(idx);
+      }
+    });
+
+    for (final idx in toRemove) {
+      final ctrl = _controllers.remove(idx);
+      if (ctrl != null) {
         try {
-          fallback.setVolume(0.0);
-          fallback.pause();
+          ctrl.setVolume(0.0);
+          ctrl.pause();
+          ctrl.dispose();
         } catch (_) {}
-        fallback.dispose();
-        return;
       }
-
-      await fallback.setVolume(1.0);
-      if (widget.isActive && _isPlaying) {
-        await fallback.play();
-      }
-
-      if (token == _playRequestToken && mounted) {
-        setState(() {
-          _videoController = fallback;
-          _isVideoInitialized = true;
-          _isPlaying = widget.isActive;
-        });
-      } else {
-        try {
-          fallback.setVolume(0.0);
-          fallback.pause();
-        } catch (_) {}
-        fallback.dispose();
-      }
-    } catch (_) {}
+    }
   }
 
   void _togglePlayPause() {
@@ -271,11 +284,14 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
   void dispose() {
     _pageController.dispose();
     _soundWaveController.dispose();
-    try {
-      _videoController?.setVolume(0.0);
-      _videoController?.pause();
-    } catch (_) {}
-    _videoController?.dispose();
+    _controllers.forEach((_, ctrl) {
+      try {
+        ctrl.setVolume(0.0);
+        ctrl.pause();
+        ctrl.dispose();
+      } catch (_) {}
+    });
+    _controllers.clear();
     silenceBackgroundWebVideos();
     super.dispose();
   }
@@ -456,44 +472,6 @@ class _FeedScreenState extends State<FeedScreen> with TickerProviderStateMixin {
               viewCount: 182000,
               thumbnailPath: AppAssets.imgAndrianPoster,
               createdAt: 'Hari ini',
-            ),
-            PostEntity(
-              id: 2,
-              userId: 2,
-              authorName: 'Aurelie Hermansyah',
-              authorUsername: 'aurelie.hermansyah',
-              authorAvatar: AppAssets.imgFeed,
-              videoUrl: AppAssets.videoLanding,
-              caption: 'Kalo ini sama kembaran aku👯‍♀️',
-              musicTitle: '♫ Berisi: Anak Kampung (T...',
-              likesCount: 844300,
-              commentsCount: 3322,
-              sharesCount: 12300,
-              bookmarksCount: 17100,
-              isLiked: false,
-              isBookmarked: false,
-              viewCount: 1520000,
-              thumbnailPath: AppAssets.imgFeed,
-              createdAt: 'Hari ini',
-            ),
-            PostEntity(
-              id: 3,
-              userId: 3,
-              authorName: 'ei.kaa🍭',
-              authorUsername: 'ei.kaa',
-              authorAvatar: AppAssets.imgFriends,
-              videoUrl: AppAssets.videoLanding,
-              caption: 'Seru banget jalan-jalan sore bareng bestie! Jangan lupa follow dan like ya guys ✨ #friends #vlog',
-              musicTitle: '♫ Beat Aesthetic Viral 2026',
-              likesCount: 95400,
-              commentsCount: 890,
-              sharesCount: 2800,
-              bookmarksCount: 5600,
-              isLiked: false,
-              isBookmarked: false,
-              viewCount: 280000,
-              thumbnailPath: AppAssets.imgFriends,
-              createdAt: '2 hari lalu',
             ),
           ];
 

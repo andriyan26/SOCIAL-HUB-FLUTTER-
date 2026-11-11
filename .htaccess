@@ -45,6 +45,21 @@
   Header set Accept-Ranges bytes
 </IfModule>
 
+# Browser Caching for Instant Video & Media Playback
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType video/mp4 "access plus 1 month"
+  ExpiresByType video/quicktime "access plus 1 month"
+  ExpiresByType video/webm "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType font/otf "access plus 1 year"
+  ExpiresByType font/ttf "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
 # Upload & Memory Limits for PHP
 <IfModule mod_php8.c>
   php_value upload_max_filesize 256M

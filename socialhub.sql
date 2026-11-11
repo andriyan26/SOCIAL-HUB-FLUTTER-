@@ -127,9 +127,7 @@ INSERT INTO `users` (`id`, `username`, `name`, `email`, `password`, `avatar_url`
 
 -- 2. Default Feed Posts
 INSERT INTO `posts` (`id`, `user_id`, `author_name`, `author_username`, `author_avatar`, `video_url`, `caption`, `music_title`, `likes_count`, `comments_count`, `shares_count`, `bookmarks_count`, `is_liked`, `is_bookmarked`, `is_reposted`, `is_private`, `view_count`, `thumbnail_path`, `created_at`) VALUES
-(1, 1, 'Andrian', 'andrianpei', 'assets/images/img_8668.jpg', 'assets/videos/andrian_feed.mp4', 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik! Terima kasih untuk semua dukungannya ✨ #wisuda #unpam #informatika #fyp', '♫ Berisi: Sound Wisuda Bangga (Original) - andrianpei', 844300, 3322, 12300, 17100, 0, 0, 0, 0, 182000, 'assets/images/andrian_feed_poster.jpg', NOW()),
-(2, 2, 'Aurelie Hermansyah', 'aurelie.hermansyah', 'assets/images/img_8664.jpg', 'assets/videos/konsep_sebelum_login.mp4', 'Kalo ini sama kembaran aku👯‍♀️', '♫ Berisi: Anak Kampung (T...', 844300, 3322, 12300, 17100, 0, 0, 0, 0, 1520000, 'assets/images/img_8664.jpg', NOW()),
-(3, 3, 'ei.kaa🍭', 'ei.kaa', 'assets/images/img_8665.jpg', 'assets/videos/konsep_sebelum_login.mp4', 'Seru banget jalan-jalan sore bareng bestie! Jangan lupa follow dan like ya guys ✨ #friends #vlog', '♫ Beat Aesthetic Viral 2026', 95400, 890, 2800, 5600, 0, 0, 0, 0, 280000, 'assets/images/img_8665.jpg', NOW());
+(1, 1, 'Andrian', 'andrianpei', 'assets/images/img_8668.jpg', 'assets/videos/andrian_feed.mp4', 'Wisuda Sarjana Teknik Informatika S1 🎓 IPK 3.73 Wisudawan Terbaik! Terima kasih untuk semua dukungannya ✨ #wisuda #unpam #informatika #fyp', '♫ Berisi: Sound Wisuda Bangga (Original) - andrianpei', 844300, 3322, 12300, 17100, 0, 0, 0, 0, 182000, 'assets/images/andrian_feed_poster.jpg', NOW());
 
 -- 3. Comments for Post 1
 INSERT INTO `comments` (`id`, `post_id`, `user_id`, `username`, `user_avatar`, `text`, `likes_count`, `created_at`) VALUES
